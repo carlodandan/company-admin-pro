@@ -7,6 +7,8 @@ A Modern, Full-Featured Company Administration System
 # Overview
 Company Admin Pro is a comprehensive administration system designed to streamline company operations, employee management, payroll processing, and attendance tracking. Built with modern web technologies, it provides an intuitive interface for administrators to manage all aspects of their organization efficiently.
 
+![Company Admin Pro](https://raw.githubusercontent.com/carlodandan/company-admin-pro/refs/heads/main/images/dashboard.png)
+
 # Features
 ### Dashboard & Analytics
 - Real-time overview of company metrics
