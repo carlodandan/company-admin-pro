@@ -118,7 +118,7 @@ const Employees = () => {
       hireDate: employee.hire_date ? new Date(employee.hire_date).toLocaleDateString() : 'Unknown',
       status: employee.status || 'Unknown',
       companyId: employee.company_id || 'No ID',
-      salary: employee.salary ? `$${parseInt(employee.salary).toLocaleString()}` : '$0',
+      salary: employee.salary ? `₱${parseInt(employee.salary).toLocaleString()}` : '$0',
       avatarColor: avatarColors[department] || 'bg-gray-100',
       avatarText: avatarText,
       rawSalary: parseFloat(employee.salary || 0)
@@ -166,9 +166,9 @@ const Employees = () => {
 
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -275,7 +275,7 @@ const Employees = () => {
         <div className="bg-white p-5 rounded-xl border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-sm text-gray-600">Avg. Salary</p>
+              <p className="text-sm text-gray-600">Avg. Annual Salary</p>
               <p className="text-2xl font-bold mt-1">{formatCurrency(stats.avgSalary)}</p>
             </div>
             <div className="p-2 bg-purple-50 rounded-lg">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Phone, Briefcase, DollarSign, Calendar, Building, Save, Loader2, AlertCircle } from 'lucide-react';
+import { X, User, Mail, Phone, Briefcase, PhilippinePeso, Calendar, Building, Save, Loader2, AlertCircle } from 'lucide-react';
 
 const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
   const [loading, setLoading] = useState(false);
@@ -130,9 +130,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -349,7 +349,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                       Salary (Annual) *
                     </label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                      <PhilippinePeso className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
                       <input
                         type="number"
                         name="salary"

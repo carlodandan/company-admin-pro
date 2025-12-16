@@ -218,7 +218,7 @@ const Dashboard = () => {
                           </div>
                           <div className="flex justify-between mt-1">
                             <span className="text-xs text-gray-500">
-                              Avg. Salary: ${avgSalary}
+                              Avg. Annual Salary: ₱{avgSalary}
                             </span>
                             <span className="text-xs text-gray-500">
                               {percentage}%

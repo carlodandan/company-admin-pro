@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building, Users, DollarSign, Loader2, Edit, Trash2 } from 'lucide-react';
+import { Plus, Building, Users, PhilippinePeso, Loader2, Edit, Trash2 } from 'lucide-react';
 
 const Departments = () => {
   const [departments, setDepartments] = useState([]);
@@ -91,9 +91,9 @@ const Departments = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -174,7 +174,7 @@ const Departments = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <DollarSign size={16} className="text-green-600" />
+                    <PhilippinePeso size={16} className="text-green-600" />
                     <span className="text-sm text-gray-600">Annual Budget</span>
                   </div>
                   <span className="font-bold text-gray-900">{formatCurrency(dept.budget)}</span>

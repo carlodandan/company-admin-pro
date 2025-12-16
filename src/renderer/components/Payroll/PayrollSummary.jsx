@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Download, Printer, Send, CheckCircle, Clock } from 'lucide-react';
+import { PhilippinePeso, Download, Printer, Send, CheckCircle, Clock } from 'lucide-react';
 
 const PayrollSummary = ({ payrollData }) => {
   if (!payrollData || !payrollData.employees || payrollData.employees.length === 0) {
@@ -16,13 +16,13 @@ const PayrollSummary = ({ payrollData }) => {
               Export
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              <DollarSign size={18} />
+              <PhilippinePeso size={18} />
               Process Payroll
             </button>
           </div>
         </div>
         <div className="text-center py-8 text-gray-500">
-          <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+          <PhilippinePeso className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p>Payroll data will appear here once processed</p>
         </div>
       </div>
@@ -30,9 +30,9 @@ const PayrollSummary = ({ payrollData }) => {
   }
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -70,7 +70,7 @@ const PayrollSummary = ({ payrollData }) => {
             Export
           </button>
           <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <DollarSign size={18} />
+            <PhilippinePeso size={18} />
             Process Payroll
           </button>
         </div>

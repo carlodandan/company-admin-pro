@@ -5,9 +5,9 @@ const OverviewCards = ({ stats }) => {
   if (!stats) return null;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PH', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'PHP',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -42,7 +42,7 @@ const OverviewCards = ({ stats }) => {
       borderColor: 'border-yellow-100'
     },
     {
-      title: 'Avg. Salary',
+      title: 'Avg. Annual Salary',
       value: formatCurrency(stats.avgSalary),
       change: '+3.2%',
       trend: 'up',
