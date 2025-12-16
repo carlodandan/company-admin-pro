@@ -15,7 +15,6 @@ const EmployeeTable = () => {
 
   const handleViewEmployee = (employeeId) => {
     console.log('View employee:', employeeId);
-    // In a real app, you would navigate to employee detail page or show modal
     alert(`Viewing employee ${employeeId}`);
   };
 

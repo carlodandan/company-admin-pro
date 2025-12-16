@@ -1,24 +1,199 @@
-import React from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import Departments from './pages/Departments';
 import Attendance from './pages/Attendance';
 import Payroll from './pages/Payroll';
+import LoginPage from './pages/LoginPage';
+import RegistrationPage from './pages/RegistrationPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+
+// Protected Route Component
+const ProtectedRoute = ({ children, isAuthenticated }) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
+// Public Route Component (for auth pages when already authenticated)
+const PublicRoute = ({ children, isAuthenticated }) => {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState(null);
+
+  // Check authentication and registration status on mount
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      // First check if system is registered
+      const registrationCheck = await window.electronAPI.isSystemRegistered();
+      
+      if (registrationCheck.success) {
+        setIsRegistered(registrationCheck.isRegistered);
+        
+        // If registered, check if we have a stored token
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          // In a real app, you would validate the token here
+          // For now, we'll just check if we have user info in localStorage
+          const savedUser = localStorage.getItem('userInfo');
+          if (savedUser) {
+            setUserInfo(JSON.parse(savedUser));
+            setIsAuthenticated(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegistration = async (registrationData) => {
+    try {
+      console.log('Registration data sent to backend:', registrationData);
+      const result = await window.electronAPI.registerSystem(registrationData);
+      
+      console.log('Registration API response:', result);
+      
+      if (result.success) {
+        // Return the success result with the super admin password
+        return { 
+          success: true, 
+          superAdminPassword: result.superAdminPassword // Make sure backend returns this
+        };
+      }
+      return { success: false, error: result.error || 'Registration failed' };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const handleLogin = async (email, password) => {
+    try {
+      const result = await window.electronAPI.loginUser(email, password);
+      
+      if (result.success) {
+        // Store authentication data
+        localStorage.setItem('authToken', 'authenticated');
+        localStorage.setItem('userInfo', JSON.stringify(result.user));
+        setUserInfo(result.user);
+        setIsAuthenticated(true);
+        return { success: true, user: result.user };
+      }
+      return { success: false, error: result.error };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed' };
+    }
+  };
+
+  // Function for password reset
+  const handlePasswordReset = async (email, superAdminPassword, newPassword) => {
+    try {
+      const result = await window.electronAPI.resetAdminPassword(
+        email, 
+        superAdminPassword, 
+        newPassword
+      );
+      return result;
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { success: false, error: 'Password reset failed' };
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userInfo');
+    setUserInfo(null);
+    setIsAuthenticated(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="flex flex-col items-center">
+          <div className="h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <HashRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
+        {/* Authentication Routes */}
+        <Route path="/login" element={
+          <PublicRoute isAuthenticated={isAuthenticated}>
+            {isRegistered ? (
+              <LoginPage onLogin={handleLogin} />
+            ) : (
+              <Navigate to="/register" replace />
+            )}
+          </PublicRoute>
+        } />
+        
+        <Route path="/register" element={
+          <PublicRoute isAuthenticated={isAuthenticated}>
+            {isRegistered ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <RegistrationPage onRegister={handleRegistration} />
+            )}
+          </PublicRoute>
+        } />
+        
+        {/* Add Forgot Password Route */}
+        <Route path="/forgot-password" element={
+          <PublicRoute isAuthenticated={isAuthenticated}>
+            {isRegistered ? (
+              <ForgotPasswordPage onResetPassword={handlePasswordReset} />
+            ) : (
+              <Navigate to="/register" replace />
+            )}
+          </PublicRoute>
+        } />
+        
+        {/* Protected Routes */}
+        <Route path="/" element={
+          <ProtectedRoute isAuthenticated={isAuthenticated}>
+            <Layout userInfo={userInfo} onLogout={handleLogout} />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employees" element={<Employees />} />
           <Route path="departments" element={<Departments />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="payroll" element={<Payroll />} />
         </Route>
+        
+        {/* Catch all - redirect based on auth status */}
+        <Route path="*" element={
+          isAuthenticated ? 
+            <Navigate to="/dashboard" replace /> : 
+            isRegistered ? 
+              <Navigate to="/login" replace /> : 
+              <Navigate to="/register" replace />
+        } />
       </Routes>
     </HashRouter>
   );

@@ -1,15 +1,20 @@
 import { app, BrowserWindow, Menu, ipcMain } from 'electron';
 import path from 'node:path';
-import DatabaseService from '../database/database';
+import DatabaseService from '../database/DatabaseService';
+import AuthService from '../database/AuthService';
 
 let mainWindow;
 let dbService;
+let authService;
 
 if (require('electron-squirrel-startup')) app.quit();
 
 function createWindow() {
   // Initialize database (no seeding)
   dbService = new DatabaseService();
+  
+  // Initialize auth service
+  authService = new AuthService();
 
   // Create the browser window
   mainWindow = new BrowserWindow({
@@ -140,6 +145,167 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+// Store registration
+ipcMain.handle('auth:register', async (event, registrationData) => {
+  try {
+    console.log('Registration request received');
+    const result = authService.storeRegistration(registrationData);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Registration error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get all users
+ipcMain.handle('auth:get-users', async () => {
+  try {
+    const users = authService.getAllUsers();
+    return { success: true, data: users };
+  } catch (error) {
+    console.error('Error getting users:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Update user
+ipcMain.handle('auth:update-user', async (event, userId, userData) => {
+  try {
+    const result = authService.updateUser(userId, userData);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Change password
+ipcMain.handle('auth:change-password', async (event, userId, currentPassword, newPassword) => {
+  try {
+    const result = authService.changePassword(userId, currentPassword, newPassword);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error changing password:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Reset registration (for testing only)
+ipcMain.handle('auth:reset-registration', async () => {
+  try {
+    const result = authService.resetRegistration();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error resetting registration:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Backup auth database
+ipcMain.handle('auth:backup-database', async () => {
+  try {
+    const result = authService.backupDatabase();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error backing up auth database:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Verify Super Admin Password
+ipcMain.handle('verify-super-admin-password', async (event, email, password) => {
+  try {
+    const result = authService.verifySuperAdminPassword(email, password);
+    return result;
+  } catch (error) {
+    console.error('Error verifying super admin password:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('register-system', async (event, registrationData) => {
+  try {
+    console.log('Registration request received');
+    const result = authService.storeRegistration(registrationData);
+    console.log('Registration result:', result);
+    return result; // This will include superAdminPassword
+  } catch (error) {
+    console.error('Error during registration:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Check if system is registered
+ipcMain.handle('auth:is-registered', async (event) => {
+  try {
+    const isRegistered = authService.isSystemRegistered();
+    return { success: true, isRegistered };
+  } catch (error) {
+    console.error('Error checking registration:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Get registration information
+ipcMain.handle('auth:get-registration-info', async (event) => {
+  try {
+    const info = authService.getRegistrationInfo();
+    return { success: true, data: info };
+  } catch (error) {
+    console.error('Error getting registration info:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Verify Super Admin Password
+ipcMain.handle('auth:verify-super-admin', async (event, email, superAdminPassword) => {
+  try {
+    console.log('Verifying Super Admin Password for:', email);
+    const result = authService.verifySuperAdminPassword(email, superAdminPassword);
+    return result;
+  } catch (error) {
+    console.error('Error verifying super admin password:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Reset Admin Password
+ipcMain.handle('auth:reset-admin-password', async (event, email, superAdminPassword, newPassword) => {
+  try {
+    console.log('Resetting admin password for:', email);
+    const result = authService.resetAdminPassword(email, superAdminPassword, newPassword);
+    return result;
+  } catch (error) {
+    console.error('Error resetting admin password:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// User login
+ipcMain.handle('auth:login', async (event, email, password) => {
+  try {
+    console.log('Login attempt for:', email);
+    const result = authService.verifyAdminLogin(email, password);
+    return result;
+  } catch (error) {
+    console.error('Error during login:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Create user (for future multi-user support)
+ipcMain.handle('auth:create-user', async (event, userData) => {
+  try {
+    // This would need to be implemented in AuthService
+    console.log('Create user request:', userData);
+    return { success: false, error: 'Not implemented yet' };
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 
 // IPC Handlers for database operations
 ipcMain.handle('database:query', async (event, sql, params) => {

@@ -76,8 +76,8 @@ class DashboardService {
         // In a real app, you would query the database for each day
         // For now, simulate data
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const present = Math.floor(Math.random() * 200) + 50; // Simulated
-        const absent = Math.floor(Math.random() * 20) + 1; // Simulated
+        const present = Math.floor(Math.random() * 200) + 50;
+        const absent = Math.floor(Math.random() * 20) + 1;
         
         weekDays.push({
           day: dayName,
@@ -137,7 +137,7 @@ class DashboardService {
   static calculateMonthlyRevenue(payrollSummary) {
     // In a real app, this would come from your accounting system
     // For now, estimate based on payroll
-    return payrollSummary.total * 3; // Assuming revenue is 3x payroll
+    return payrollSummary.total * 3;
   }
 
   // Get recent activities (simulated)
@@ -151,11 +151,9 @@ class DashboardService {
       'created report'
     ];
 
-    // --- FIX APPLIED HERE: If employees is empty, exit early. ---
     if (!employees || employees.length === 0) {
       return [];
     }
-    // -----------------------------------------------------------
 
     const users = employees.slice(0, 5).map(emp => ({
       name: `${emp.first_name} ${emp.last_name}`,

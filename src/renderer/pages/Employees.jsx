@@ -26,7 +26,7 @@ const Employees = () => {
     try {
       setLoading(true);
       const data = await window.electronAPI.getAllEmployees();
-      console.log('Loaded employees:', data); // Debug log
+      console.log('Loaded employees:', data);
       setEmployees(data || []);
       calculateStats(data || []);
     } catch (error) {

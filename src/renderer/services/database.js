@@ -1,93 +1,98 @@
 class DatabaseService {
-  // Employees
+  // Employee operations
   static async getAllEmployees() {
     if (!window.electronAPI) {
-      // Fallback for development without Electron
-      return this.getMockEmployees();
+      return [];
     }
     return window.electronAPI.getAllEmployees();
   }
 
   static async getEmployeeById(id) {
     if (!window.electronAPI) {
-      return this.getMockEmployees().find(e => e.id === id);
+      return null;
     }
     return window.electronAPI.getEmployeeById(id);
   }
 
   static async createEmployee(employeeData) {
     if (!window.electronAPI) {
-      console.log('Mock create employee:', employeeData);
-      return { id: Date.now(), changes: 1 };
+      throw new Error('Electron API not available');
     }
     return window.electronAPI.createEmployee(employeeData);
   }
 
   static async updateEmployee(id, employeeData) {
     if (!window.electronAPI) {
-      console.log('Mock update employee:', id, employeeData);
-      return { changes: 1 };
+      throw new Error('Electron API not available');
     }
     return window.electronAPI.updateEmployee(id, employeeData);
   }
 
   static async deleteEmployee(id) {
     if (!window.electronAPI) {
-      console.log('Mock delete employee:', id);
-      return { changes: 1 };
+      throw new Error('Electron API not available');
     }
     return window.electronAPI.deleteEmployee(id);
   }
 
-    static async createEmployee(employeeData) {
-    if (!window.electronAPI) {
-      console.log('Mock creating employee:', employeeData);
-      // Generate a mock ID
-      const mockId = Math.floor(Math.random() * 1000) + 100;
-      return { id: mockId, changes: 1 };
-    }
-    
-    try {
-      console.log('Creating employee via API:', employeeData);
-      const result = await window.electronAPI.createEmployee(employeeData);
-      console.log('Create employee result:', result);
-      return result;
-    } catch (error) {
-      console.error('Error creating employee:', error);
-      throw error;
-    }
-  }
-
-  // Departments
+  // Department operations
   static async getAllDepartments() {
     if (!window.electronAPI) {
-      return this.getMockDepartments();
+      return [];
     }
     return window.electronAPI.getAllDepartments();
   }
 
-  static async getAllDepartments() {
-    if (!window.electronAPI) {
-      return this.getMockDepartments();
-    }
-    try {
-      return await window.electronAPI.getAllDepartments();
-    } catch (error) {
-      console.error('Error getting departments:', error);
-      return this.getMockDepartments();
-    }
-  }
-
+  // Attendance operations
   static async getTodayAttendance() {
     if (!window.electronAPI) {
       return [];
     }
-    try {
-      return await window.electronAPI.getTodayAttendance();
-    } catch (error) {
-      console.error('Error getting today\'s attendance:', error);
+    return window.electronAPI.getTodayAttendance();
+  }
+
+  static async recordAttendance(attendanceData) {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.recordAttendance(attendanceData);
+  }
+
+  // Payroll operations
+  static async processPayroll(payrollData) {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.processPayroll(payrollData);
+  }
+
+  static async getAllPayroll() {
+    if (!window.electronAPI) {
       return [];
     }
+    return window.electronAPI.getAllPayroll();
+  }
+
+  // Database operations
+  static async query(sql, params) {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.query(sql, params);
+  }
+
+  static async execute(sql, params) {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.execute(sql, params);
+  }
+
+  static async backupDatabase() {
+    if (!window.electronAPI) {
+      throw new Error('Electron API not available');
+    }
+    return window.electronAPI.backupDatabase();
   }
 }
 
