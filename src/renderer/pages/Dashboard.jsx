@@ -80,7 +80,7 @@ const Dashboard = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-              Welcome back, Administrator 👋
+              Welcome back, Administrator 
             </h1>
             <p className="text-sm text-gray-600 mt-2">
               Here's what's happening with your company today. 

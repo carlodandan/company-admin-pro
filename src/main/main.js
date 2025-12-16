@@ -572,3 +572,43 @@ ipcMain.handle('database:backup', async () => {
     return { success: false, error: error.message };
   }
 });
+
+// Save user profile
+ipcMain.handle('user:save-profile', async (event, userData) => {
+  try {
+    return dbService.saveUserProfile(userData);
+  } catch (error) {
+    console.error('Error saving user profile:', error);
+    throw error;
+  }
+});
+
+// Get user profile
+ipcMain.handle('user:get-profile', async (event, email) => {
+  try {
+    return dbService.getUserProfile(email);
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return null;
+  }
+});
+
+// Update user avatar
+ipcMain.handle('user:update-avatar', async (event, email, avatarData) => {
+  try {
+    return dbService.updateUserAvatar(email, avatarData);
+  } catch (error) {
+    console.error('Error updating avatar:', error);
+    throw error;
+  }
+});
+
+// Get user settings
+ipcMain.handle('user:get-settings', async (event, email) => {
+  try {
+    return dbService.getUserSettings(email);
+  } catch (error) {
+    console.error('Error getting user settings:', error);
+    return null;
+  }
+});

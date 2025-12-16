@@ -15,6 +15,8 @@ class DatabaseService {
   initializeDatabase() {
     this.createTables();
     this.migrateDatabase();
+    this.createUsersTable();
+    this.initializeDefaultUser();
   }
 
   createTables() {
@@ -97,6 +99,181 @@ class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_attendance_employee_date ON attendance(employee_id, date);
       CREATE INDEX IF NOT EXISTS idx_payroll_period ON payroll(period_start, period_end);
     `);
+  }
+
+  createUsersTable() {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        avatar TEXT,
+        phone TEXT,
+        position TEXT,
+        department TEXT,
+        hire_date DATE,
+        bio TEXT,
+        theme_preference TEXT DEFAULT 'light',
+        language TEXT DEFAULT 'en',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
+// Initialize default admin user
+initializeDefaultUser() {
+  try {
+    // Check if admin user exists
+    const checkStmt = this.db.prepare('SELECT COUNT(*) as count FROM users WHERE email = ?');
+    const result = checkStmt.get('admin@company.com');
+    
+    if (result.count === 0) {
+      const stmt = this.db.prepare(`
+        INSERT INTO users (email, display_name, position, department, hire_date, bio)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `);
+      
+      stmt.run(
+        'admin@company.com',
+        'Admin User',
+        'System Administrator',
+        'IT Department',
+        new Date().toISOString().split('T')[0],
+        'System administrator with full access to all features.'
+      );
+      console.log('Default admin user created');
+    }
+  } catch (error) {
+    console.error('Error initializing default user:', error);
+  }
+}
+
+  saveUserProfile(userData) {
+    try {
+      // First, check if we need to update email (user is changing their email)
+      const existingUser = this.getUserProfile(userData.email);
+      
+      if (existingUser) {
+        // User exists with this email, update it
+        const stmt = this.db.prepare(`
+          UPDATE users SET
+            display_name = ?,
+            avatar = ?,
+            phone = ?,
+            position = ?,
+            department = ?,
+            hire_date = ?,
+            bio = ?,
+            theme_preference = ?,
+            language = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE email = ?
+        `);
+        
+        const info = stmt.run(
+          userData.displayName || '',
+          userData.avatar || null,
+          userData.phone || null,
+          userData.position || null,
+          userData.department || null,
+          userData.hireDate || null,
+          userData.bio || null,
+          userData.themePreference || 'light',
+          userData.language || 'en',
+          userData.email
+        );
+        
+        return { id: existingUser.id, changes: info.changes };
+      } else {
+        // Check if user exists with old email (email change scenario)
+        // This would require knowing the old email, which you don't have in this method
+        // You might need to pass both old and new email
+        
+        // For now, just insert new user
+        const stmt = this.db.prepare(`
+          INSERT INTO users (
+            email, display_name, avatar, phone, position, 
+            department, hire_date, bio, theme_preference, language
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        
+        const info = stmt.run(
+          userData.email,
+          userData.displayName || '',
+          userData.avatar || null,
+          userData.phone || null,
+          userData.position || null,
+          userData.department || null,
+          userData.hireDate || null,
+          userData.bio || null,
+          userData.themePreference || 'light',
+          userData.language || 'en'
+        );
+        
+        return { id: info.lastInsertRowid, changes: info.changes };
+      }
+    } catch (error) {
+      console.error('Error saving user profile:', error);
+      throw error;
+    }
+  }
+
+
+  // Get user profile by email
+  getUserProfile(email) {
+    try {
+      const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
+      return stmt.get(email);
+    } catch (error) {
+      console.error('Error getting user profile:', error);
+      return null;
+    }
+  }
+
+  // Update user avatar
+  updateUserAvatar(email, avatarData) {
+    try {
+      const stmt = this.db.prepare(`
+        UPDATE users 
+        SET avatar = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE email = ?
+      `);
+      
+      const info = stmt.run(avatarData, email);
+      return { changes: info.changes };
+    } catch (error) {
+      console.error('Error updating user avatar:', error);
+      throw error;
+    }
+  }
+
+  // Get all user settings (including preferences)
+  getUserSettings(email) {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT 
+          email,
+          display_name as displayName,
+          avatar,
+          phone,
+          position,
+          department,
+          hire_date as hireDate,
+          bio,
+          theme_preference as themePreference,
+          language,
+          created_at as createdAt,
+          updated_at as updatedAt
+        FROM users 
+        WHERE email = ?
+      `);
+      
+      return stmt.get(email);
+    } catch (error) {
+      console.error('Error getting user settings:', error);
+      return null;
+    }
   }
 
   // Employee methods
@@ -659,7 +836,7 @@ migrateDatabase() {
     `).all();
     
     const columnNames = columns.map(col => col.name);
-    
+
     // Add cutoff_type if it doesn't exist
     if (!columnNames.includes('cutoff_type')) {
       this.db.exec(`ALTER TABLE payroll ADD COLUMN cutoff_type TEXT DEFAULT 'Full Month'`);
@@ -689,7 +866,69 @@ migrateDatabase() {
       this.db.exec(`ALTER TABLE payroll ADD COLUMN breakdown TEXT`);
       console.log('Added breakdown column to payroll table');
     }
+
+    // Check and migrate users table
+    const usersColumns = this.db.prepare(`
+      PRAGMA table_info(users)
+    `).all();
     
+    const usersColumnNames = usersColumns.map(col => col.name);
+    
+    // Add display_name if it doesn't exist
+    if (!usersColumnNames.includes('display_name')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''`);
+      console.log('Added display_name column to users table');
+    }
+    
+    // Add avatar if it doesn't exist
+    if (!usersColumnNames.includes('avatar')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT`);
+      console.log('Added avatar column to users table');
+    }
+    
+    // Add phone if it doesn't exist
+    if (!usersColumnNames.includes('phone')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`);
+      console.log('Added phone column to users table');
+    }
+    
+    // Add position if it doesn't exist
+    if (!usersColumnNames.includes('position')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN position TEXT`);
+      console.log('Added position column to users table');
+    }
+    
+    // Add department if it doesn't exist
+    if (!usersColumnNames.includes('department')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN department TEXT`);
+      console.log('Added department column to users table');
+    }
+    
+    // Add hire_date if it doesn't exist
+    if (!usersColumnNames.includes('hire_date')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN hire_date DATE`);
+      console.log('Added hire_date column to users table');
+    }
+    
+    // Add bio if it doesn't exist
+    if (!usersColumnNames.includes('bio')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`);
+      console.log('Added bio column to users table');
+    }
+    
+    // Add theme_preference if it doesn't exist
+    if (!usersColumnNames.includes('theme_preference')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN theme_preference TEXT DEFAULT 'light'`);
+      console.log('Added theme_preference column to users table');
+    }
+    
+    // Add language if it doesn't exist
+    if (!usersColumnNames.includes('language')) {
+      this.db.exec(`ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'`);
+      console.log('Added language column to users table');
+    }
+
+
     console.log('Database migration completed successfully');
   } catch (error) {
     console.error('Error during database migration:', error);

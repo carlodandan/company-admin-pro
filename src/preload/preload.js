@@ -18,8 +18,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createUser: (userData) => ipcRenderer.invoke('auth:create-user', userData),
   getAllUsers: () => ipcRenderer.invoke('auth:get-users'),
   updateUser: (userId, userData) => ipcRenderer.invoke('auth:update-user', userId, userData),
-  changePassword: (userId, currentPassword, newPassword) => 
-    ipcRenderer.invoke('auth:change-password', userId, currentPassword, newPassword),
+  changePassword: (userId, currentPassword, newPassword) => ipcRenderer.invoke('auth:change-password', userId, currentPassword, newPassword),
+  // User profile operations
+  saveUserProfile: (userData) => ipcRenderer.invoke('user:save-profile', userData),
+  getUserProfile: (email) => ipcRenderer.invoke('user:get-profile', email),
+  updateUserAvatar: (email, avatarData) => ipcRenderer.invoke('user:update-avatar', email, avatarData),
+  getUserSettings: (email) => ipcRenderer.invoke('user:get-settings', email),
   
   // Admin functions
   resetRegistration: () => ipcRenderer.invoke('auth:reset-registration'),

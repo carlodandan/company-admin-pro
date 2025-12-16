@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -10,10 +11,12 @@ import {
   Briefcase,
   Shield
 } from 'lucide-react';
+import { useUser } from '../../contexts/UserContext';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { user } = useUser();
 
   const navItems = [
     { icon: <Home size={20} />, label: 'Dashboard', path: '/dashboard' },
@@ -22,7 +25,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { icon: <Calendar size={20} />, label: 'Attendance', path: '/attendance' },
     { icon: <CreditCard size={20} />, label: 'Payroll', path: '/payroll' },
     { icon: <BarChart size={20} />, label: 'Analytics', path: '#' },
-    { icon: <Settings size={20} />, label: 'Settings', path: '#' },
+    { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
     { icon: <Shield size={20} />, label: 'Admin', path: '#' },
   ];
 
@@ -48,12 +51,22 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           {/* Logo */}
           <div className="p-6 border-b border-gray-700">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Briefcase size={22} />
+              <div className="w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-600 flex items-center justify-center">
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <Briefcase size={22} />
+                  </div>
+                )}
               </div>
               <div>
-                <h1 className="text-xl font-bold">Admin<span className="text-blue-400">Pro</span></h1>
-                <p className="text-gray-400 text-xs mt-1">Company Admin System</p>
+                <h1 className="text-xl font-bold">{user.displayName}</h1>
+                <p className="text-gray-400 text-xs mt-1">Admin Management System</p>
               </div>
             </div>
           </div>
