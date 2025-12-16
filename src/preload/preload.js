@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Department operations
   getAllDepartments: () => ipcRenderer.invoke('departments:get-all'),
   createDepartment: (department) => ipcRenderer.invoke('departments:create', department),
+  deleteDepartment: (id) => ipcRenderer.invoke('departments:delete', id),
   
   // Attendance operations
   getTodayAttendance: () => ipcRenderer.invoke('attendance:get-today'),

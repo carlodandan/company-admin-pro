@@ -6,18 +6,25 @@ const Departments = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDepartment, setNewDepartment] = useState({ name: '', budget: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    console.log('Departments component mounted, loading data...');
     loadDepartments();
   }, []);
 
   const loadDepartments = async () => {
     try {
+      console.log('Loading departments...');
       setLoading(true);
+      setError(null);
       const data = await window.electronAPI.getAllDepartments();
+      console.log('Departments loaded:', data);
       setDepartments(data || []);
     } catch (error) {
       console.error('Error loading departments:', error);
+      setError('Failed to load departments');
       setDepartments([]);
     } finally {
       setLoading(false);
@@ -25,24 +32,61 @@ const Departments = () => {
   };
 
   const handleAddDepartment = async () => {
-    if (!newDepartment.name || !newDepartment.budget) {
+    if (!newDepartment.name.trim() || !newDepartment.budget) {
       alert('Please fill in all fields');
       return;
     }
 
+    const budgetValue = parseFloat(newDepartment.budget);
+    if (isNaN(budgetValue) || budgetValue < 0) {
+      alert('Please enter a valid budget amount');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
     try {
-      await window.electronAPI.createDepartment({
-        name: newDepartment.name,
-        budget: parseFloat(newDepartment.budget)
+      console.log('Creating department:', newDepartment);
+      const result = await window.electronAPI.createDepartment({
+        name: newDepartment.name.trim(),
+        budget: budgetValue
       });
       
-      setShowAddModal(false);
+      console.log('Department created result:', result);
+      
+      // Reset form
       setNewDepartment({ name: '', budget: '' });
+      setShowAddModal(false);
+      
+      // Force a fresh reload
       await loadDepartments();
+      
       alert('Department added successfully!');
     } catch (error) {
       console.error('Error adding department:', error);
-      alert('Error adding department: ' + error.message);
+      const errorMessage = error.message || 'Unknown error occurred';
+      setError(`Error adding department: ${errorMessage}`);
+      alert(`Error adding department: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this department?')) {
+      return;
+    }
+
+    try {
+      console.log('Deleting department ID:', id);
+      await window.electronAPI.deleteDepartment(id);
+      console.log('Department deleted, reloading list...');
+      await loadDepartments();
+      alert('Department deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting department:', error);
+      alert(`Error deleting department: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -55,6 +99,11 @@ const Departments = () => {
     }).format(amount);
   };
 
+  const handleEditDepartment = (dept) => {
+    // You can implement edit functionality here
+    alert(`Edit functionality for ${dept.name} would go here`);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -62,16 +111,25 @@ const Departments = () => {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Departments</h1>
           <p className="text-gray-600 mt-1">Manage company departments and budgets</p>
+          {error && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+              {error}
+            </div>
+          )}
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting}
         >
-          <Plus size={18} />
-          Add Department
+          {isSubmitting ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Plus size={18} />
+          )}
+          {isSubmitting ? 'Adding...' : 'Add Department'}
         </button>
       </div>
-
       {/* Departments Grid */}
       {loading ? (
         <div className="flex items-center justify-center p-12">
@@ -99,10 +157,16 @@ const Departments = () => {
                   <p className="text-sm text-gray-600">Department ID: {dept.id}</p>
                 </div>
                 <div className="flex gap-2">
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button 
+                    onClick={() => handleEditDepartment(dept)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
                     <Edit size={16} className="text-blue-600" />
                   </button>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
+                  <button 
+                    onClick={() => handleDeleteDepartment(dept.id)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
                     <Trash2 size={16} className="text-red-600" />
                   </button>
                 </div>
@@ -161,6 +225,7 @@ const Departments = () => {
                     onChange={(e) => setNewDepartment({...newDepartment, name: e.target.value})}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="e.g., Engineering"
+                    disabled={isSubmitting}
                   />
                 </div>
                 
@@ -176,6 +241,7 @@ const Departments = () => {
                     placeholder="e.g., 500000"
                     min="0"
                     step="1000"
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
@@ -183,18 +249,23 @@ const Departments = () => {
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-200">
                 <button
                   onClick={() => {
-                    setShowAddModal(false);
-                    setNewDepartment({ name: '', budget: '' });
+                    if (!isSubmitting) {
+                      setShowAddModal(false);
+                      setNewDepartment({ name: '', budget: '' });
+                    }
                   }}
-                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddDepartment}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Add Department
+                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isSubmitting ? 'Adding...' : 'Add Department'}
                 </button>
               </div>
             </div>

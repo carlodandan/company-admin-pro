@@ -7,12 +7,12 @@ class DatabaseService {
     const userDataPath = require('electron').app.getPath('userData');
     this.dbPath = path.join(userDataPath, 'company-admin.sqlite');
     this.db = new Database(this.dbPath);
-    this.db.pragma('journam_mode = WAL')
+    this.db.pragma('journal_mode = WAL')
+    this.db.pragma('foreign_keys = ON');
     this.initializeDatabase();
   }
 
   initializeDatabase() {
-    this.db.pragma('foreign_keys = OFF');
     this.createTables();
   }
 
@@ -206,6 +206,26 @@ class DatabaseService {
       return { id: info.lastInsertRowid, changes: info.changes };
     } catch (error) {
       console.error('Error creating department:', error);
+      throw error;
+    }
+  }
+
+  // DatabaseService.js - Add this in the Department methods section
+  deleteDepartment(id) {
+    try {
+      // First check if there are any employees in this department
+      const checkStmt = this.db.prepare('SELECT COUNT(*) as count FROM employees WHERE department_id = ?');
+      const result = checkStmt.get(id);
+      
+      if (result.count > 0) {
+        throw new Error('Cannot delete department that has employees. Please reassign or delete employees first.');
+      }
+      
+      const stmt = this.db.prepare('DELETE FROM departments WHERE id = ?');
+      const info = stmt.run(id);
+      return { changes: info.changes };
+    } catch (error) {
+      console.error('Error deleting department:', error);
       throw error;
     }
   }

@@ -383,6 +383,15 @@ ipcMain.handle('departments:get-all', async () => {
   }
 });
 
+ipcMain.handle('departments:delete', async (event, id) => {
+  try {
+    return dbService.deleteDepartment(id);
+  } catch (error) {
+    console.error('Error deleting department:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('attendance:get-today', async () => {
   try {
     return dbService.getTodayAttendance();
