@@ -41,7 +41,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Attendance operations
   getTodayAttendance: () => ipcRenderer.invoke('attendance:get-today'),
   recordAttendance: (attendance) => ipcRenderer.invoke('attendance:record', attendance),
-  
+  getMonthlyAttendanceReport: (year, month) => ipcRenderer.invoke('attendance:get-monthly-report', year, month),
+  getWeeklyAttendance: () => ipcRenderer.invoke('attendance:get-weekly'),
+  getTodayAttendanceSummary: () => ipcRenderer.invoke('attendance:get-today-summary'),
+
   // Payroll operations
   processPayroll: (payrollData) => ipcRenderer.invoke('payroll:process', payrollData),
   getAllPayroll: () => ipcRenderer.invoke('payroll:get-all'),

@@ -410,6 +410,40 @@ ipcMain.handle('attendance:record', async (event, attendance) => {
   }
 });
 
+ipcMain.handle('attendance:get-weekly', async () => {
+  try {
+    return dbService.getWeeklyAttendance();
+  } catch (error) {
+    console.error('Error getting weekly attendance:', error);
+    return [];
+  }
+});
+
+// Get today's attendance summary
+ipcMain.handle('attendance:get-today-summary', async () => {
+  try {
+    return dbService.getTodayAttendanceSummary();
+  } catch (error) {
+    console.error('Error getting today\'s attendance summary:', error);
+    return {
+      presentToday: 0,
+      absentToday: 0,
+      lateToday: 0,
+      leaveToday: 0,
+      attendanceRate: '0%'
+    };
+  }
+});
+
+ipcMain.handle('attendance:get-monthly-report', async (event, year, month) => {
+  try {
+    return dbService.getMonthlyAttendanceReport(year, month);
+  } catch (error) {
+    console.error('Error getting monthly attendance report:', error);
+    return [];
+  }
+});
+
 ipcMain.handle('payroll:process', async (event, payrollData) => {
   try {
     return dbService.processPayroll(payrollData);

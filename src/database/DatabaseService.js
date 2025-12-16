@@ -272,6 +272,145 @@ class DatabaseService {
     }
   }
 
+  getWeeklyAttendance() {
+    try {
+      const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 6); // Last 7 days including today
+      
+      const startDateStr = startDate.toISOString().split('T')[0];
+      const endDateStr = today.toISOString().split('T')[0];
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          date(a.date) as date,
+          strftime('%w', a.date) as day_of_week,
+          COUNT(CASE WHEN a.status = 'Present' THEN 1 END) as present,
+          COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as absent,
+          COUNT(CASE WHEN a.status = 'Late' THEN 1 END) as late,
+          COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) as leave,
+          COUNT(*) as total
+        FROM attendance a
+        WHERE date(a.date) BETWEEN date(?) AND date(?)
+        GROUP BY date(a.date)
+        ORDER BY date(a.date) ASC
+      `);
+      
+      const rows = stmt.all(startDateStr, endDateStr);
+      
+      // Create an array for all 7 days
+      const weeklyData = [];
+      const currentDate = new Date(startDate);
+      
+      while (currentDate <= today) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const dayNumber = currentDate.getDate();
+        
+        // Find data for this date
+        const dayData = rows.find(row => row.date === dateStr);
+        
+        weeklyData.push({
+          day: dayName,
+          date: dateStr,
+          present: dayData ? dayData.present : 0,
+          absent: dayData ? dayData.absent : 0,
+          late: dayData ? dayData.late : 0,
+          leave: dayData ? dayData.leave : 0,
+          total: dayData ? dayData.total : 0
+        });
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return weeklyData;
+    } catch (error) {
+      console.error('Error getting weekly attendance:', error);
+      throw error;
+    }
+  }
+
+  // Also add a method to get today's summary
+  getTodayAttendanceSummary() {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          COUNT(CASE WHEN a.status = 'Present' THEN 1 END) as present,
+          COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as absent,
+          COUNT(CASE WHEN a.status = 'Late' THEN 1 END) as late,
+          COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) as leave,
+          COUNT(*) as total
+        FROM attendance a
+        WHERE date(a.date) = date(?)
+      `);
+      
+      const result = stmt.get(today);
+      
+      if (result && result.total > 0) {
+        const rate = ((result.present / result.total) * 100).toFixed(1);
+        return {
+          presentToday: result.present,
+          absentToday: result.absent,
+          lateToday: result.late,
+          leaveToday: result.leave,
+          attendanceRate: `${rate}%`
+        };
+      }
+      
+      // Return defaults if no data
+      return {
+        presentToday: 0,
+        absentToday: 0,
+        lateToday: 0,
+        leaveToday: 0,
+        attendanceRate: '0%'
+      };
+    } catch (error) {
+      console.error('Error getting today\'s attendance summary:', error);
+      return {
+        presentToday: 0,
+        absentToday: 0,
+        lateToday: 0,
+        leaveToday: 0,
+        attendanceRate: '0%'
+      };
+    }
+  }
+
+  getMonthlyAttendanceReport(year, month) {
+    try {
+      // Calculate start and end dates for the month
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          e.id as employee_id,
+          e.first_name || ' ' || e.last_name as employee_name,
+          d.name as department_name,
+          COUNT(CASE WHEN a.status = 'Present' THEN 1 END) as present_days,
+          COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as absent_days,
+          COUNT(CASE WHEN a.status = 'Late' THEN 1 END) as late_days,
+          COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) as leave_days,
+          COUNT(a.id) as total_recorded_days
+        FROM employees e
+        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN attendance a ON e.id = a.employee_id 
+          AND strftime('%Y-%m', a.date) = ?
+        WHERE e.status = 'Active'
+        GROUP BY e.id
+        ORDER BY e.first_name, e.last_name
+      `);
+      
+      return stmt.all(`${year}-${month.toString().padStart(2, '0')}`);
+    } catch (error) {
+      console.error('Error getting monthly attendance report:', error);
+      throw error;
+    }
+  }
+
   // Payroll methods
   processPayroll(payrollData) {
     const stmt = this.db.prepare(`
