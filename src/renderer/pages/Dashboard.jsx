@@ -74,12 +74,12 @@ const Dashboard = () => {
   const totalEmployees = stats?.totalEmployees || 1;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Welcome Banner */}
-      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+      <div className="bg-linear-to-r from-blue-50 to-indigo-50 rounded-2xl p-3 border border-blue-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+            <h1 className="text-l md:text-xl font-bold text-gray-900">
               Welcome back, Administrator 
             </h1>
             <p className="text-sm text-gray-600 mt-2">

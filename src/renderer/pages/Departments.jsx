@@ -109,7 +109,7 @@ const Departments = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Departments</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Departments</h1>
           <p className="text-gray-600 mt-1">Manage company departments and budgets</p>
           {error && (
             <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
@@ -209,7 +209,7 @@ const Departments = () => {
         <div className="fixed inset-0 bg-gray-950/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Add New Department</h2>
+              <h2 className="text-l font-bold text-gray-900">Add New Department</h2>
             </div>
             
             <div className="p-6">

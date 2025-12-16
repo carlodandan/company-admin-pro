@@ -11,15 +11,15 @@ module.exports = {
       const keep = file.startsWith('/.vite') || (file.startsWith('/node_modules'));
       return !keep;
     },
-    icon: 'icons/admin'
+    icon: 'icons/adminpro'
   },
   rebuildConfig: {},
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        iconUrl: 'https://raw.githubusercontent.com/carlodandan/company-admin-pro/refs/heads/main/icons/admin.ico',
-        setupIcon: 'icons/admin.ico'
+        iconUrl: 'https://raw.githubusercontent.com/carlodandan/admin-pro/refs/heads/main/icons/adminpro.ico',
+        setupIcon: 'icons/adminpro.ico'
       },
     }
   ],

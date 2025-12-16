@@ -49,61 +49,54 @@ export const UserProvider = ({ children }) => {
     };
   }, []);
 
-  const loadUserProfile = async () => {
-    try {
-      // Try to get the currently logged-in user email from session
-      // You might need to adjust this based on how you store the current user session
-      const currentUserEmail = getCurrentUserEmail();
-      
-      if (!currentUserEmail) {
-        console.warn('No current user email found, using default');
-        setUser(prev => ({ 
-          ...prev, 
-          email: 'admin@company.com',
-          displayName: 'Administrator',
-          loading: false 
-        }));
-        return;
-      }
-
-      // Load user from database
-      const userData = await window.electronAPI.getUserSettings(currentUserEmail);
-      
-      if (userData) {
-        setUser({
-          email: userData.email || currentUserEmail,
-          displayName: userData.displayName || 'Administrator',
-          avatar: userData.avatar || '',
-          position: userData.position || 'System Administrator',
-          department: userData.department || 'IT Department',
-          role: 'Admin',
-          loading: false
-        });
-      } else {
-        // User doesn't exist in database, create default profile
-        setUser({
-          email: currentUserEmail,
-          displayName: currentUserEmail.split('@')[0],
-          avatar: '',
-          position: 'System Administrator',
-          department: 'IT Department',
-          role: 'Admin',
-          loading: false
-        });
-      }
-    } catch (error) {
-      console.error('Error loading user profile from database:', error);
-      setUser({
-        email: 'admin@company.com',
+ const loadUserProfile = async () => {
+  try {
+    const currentUserEmail = getCurrentUserEmail();
+    
+    if (!currentUserEmail) {
+      console.warn('No current user email found, using default');
+      setUser(prev => ({ 
+        ...prev, 
+        email: 'adminpro@company.com',
         displayName: 'Administrator',
+        loading: false 
+      }));
+      return;
+    }
+
+    const userData = await window.electronAPI.getUserSettings(currentUserEmail);
+    
+    if (userData) {
+      setUser({
+        email: userData.email || currentUserEmail,
+        displayName: userData.displayName || 'Administrator',
+        avatar: userData.avatar || '',
+        position: userData.position || 'System Administrator',
+        role: 'Admin',
+        loading: false
+      });
+    } else {
+      setUser({
+        email: currentUserEmail,
+        displayName: currentUserEmail.split('@')[0],
         avatar: '',
         position: 'System Administrator',
-        department: 'IT Department',
         role: 'Admin',
         loading: false
       });
     }
-  };
+  } catch (error) {
+    console.error('Error loading user profile from database:', error);
+    setUser({
+      email: 'adminpro@company.com',
+      displayName: 'Administrator',
+      avatar: '',
+      position: 'System Administrator',
+      role: 'Admin',
+      loading: false
+    });
+  }
+};
 
   // Helper function to get current user email
   // You'll need to implement this based on your auth system
@@ -112,7 +105,7 @@ export const UserProvider = ({ children }) => {
     // return sessionStorage.getItem('currentUserEmail');
     
     // For now, return a default or implement your auth logic
-    return 'admin@company.com';
+    return 'adminpro@company.com';
   };
 
   const updateUser = (updates) => {

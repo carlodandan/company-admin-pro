@@ -158,7 +158,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                 <User className="text-blue-600" size={24} />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Add New Employee</h2>
+                <h2 className="text-l font-bold text-gray-900">Add New Employee</h2>
                 <p className="text-sm text-gray-600">Fill in the employee details below</p>
               </div>
             </div>
@@ -277,7 +277,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         onChange={handleChange}
                         disabled={departments.length === 0 || loading}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
-                        placeholder="+1 (555) 123-4567"
+                        placeholder="+63(900)000-0000"
                       />
                     </div>
                   </div>

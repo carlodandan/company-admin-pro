@@ -90,7 +90,7 @@ const LoginPage = ({ onLogin }) => {
         <div className="text-center mb-3">
           {companyInfo && (
             <div className="mb-2 p-4 bg-gray-50 rounded-2xl border border-gray-700">
-              <h1 className="text-2xl font-bold text-black mb-2">{companyInfo.company_name}</h1>
+              <h1 className="text-xl font-bold text-black mb-2">{companyInfo.company_name}</h1>
               <p className="text-black text-sm">Company Administration System</p>
               <p className="text-gray-900 text-xs mt-2">Registered on {new Date(companyInfo.registered_at).toLocaleDateString()}</p>
             </div>

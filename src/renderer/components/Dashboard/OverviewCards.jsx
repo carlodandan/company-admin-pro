@@ -53,7 +53,7 @@ const OverviewCards = ({ stats }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
       {cards.map((card, index) => (
         <div 
           key={index} 
@@ -62,7 +62,7 @@ const OverviewCards = ({ stats }) => {
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <p className="text-sm text-gray-600 mb-1">{card.title}</p>
-              <p className="text-2xl font-bold mb-2">{card.value}</p>
+              <p className="text-xl font-bold mb-2">{card.value}</p>
               <div className="flex items-center gap-1">
                 {card.trend === 'up' ? (
                   <ArrowUp size={14} className="text-green-500" />

@@ -187,7 +187,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Employees</p>
-              <p className="text-xl font-bold mt-1">{summary.totalEmployees}</p>
+              <p className="text-l font-bold mt-1">{summary.totalEmployees}</p>
             </div>
             <Users className="text-blue-500" size={20} />
           </div>
@@ -197,7 +197,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Present Days</p>
-              <p className="text-xl font-bold mt-1">{summary.totalPresentDays}</p>
+              <p className="text-l font-bold mt-1">{summary.totalPresentDays}</p>
             </div>
             <CheckCircle className="text-green-500" size={20} />
           </div>
@@ -207,7 +207,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Absent Days</p>
-              <p className="text-xl font-bold mt-1">{summary.totalAbsentDays}</p>
+              <p className="text-l font-bold mt-1">{summary.totalAbsentDays}</p>
             </div>
             <XCircle className="text-red-500" size={20} />
           </div>
@@ -217,7 +217,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Late Days</p>
-              <p className="text-xl font-bold mt-1">{summary.totalLateDays}</p>
+              <p className="text-l font-bold mt-1">{summary.totalLateDays}</p>
             </div>
             <Clock className="text-yellow-500" size={20} />
           </div>
@@ -227,7 +227,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Leave Days</p>
-              <p className="text-xl font-bold mt-1">{summary.totalLeaveDays}</p>
+              <p className="text-l font-bold mt-1">{summary.totalLeaveDays}</p>
             </div>
             <AlertCircle className="text-purple-500" size={20} />
           </div>
@@ -237,7 +237,7 @@ const MonthlyAttendanceReport = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Avg. Attendance</p>
-              <p className="text-xl font-bold mt-1">{summary.averageAttendance}</p>
+              <p className="text-l font-bold mt-1">{summary.averageAttendance}</p>
               <p className="text-xs text-gray-500 mt-1">{summary.workingDaysPerMonth || 24} working days</p>
             </div>
             <div className="w-5 h-5 rounded-full bg-indigo-500 flex items-center justify-center">

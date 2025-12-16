@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { 
   User, Camera, Save, Lock, Bell, Palette, Database, Shield,
   Moon, Sun, Globe, CreditCard, FileText, Download, Key,
@@ -10,16 +10,15 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState('admin@company.com');
+  const [currentUserEmail, setCurrentUserEmail] = useState('adminpro@company.com');
+  const [companyInfo, setCompanyInfo] = useState(null);
 
-  // User Profile State
+  // User Profile State - REMOVED department and hireDate
   const [profile, setProfile] = useState({
-    email: 'admin@company.com',
-    displayName: 'Admin User',
-    phone: '+63 912 345 6789',
+    email: 'adminpro@company.com',
+    displayName: 'Admin Pro',
+    phone: '+63(900)000-0000',
     position: 'System Administrator',
-    department: 'IT Department',
-    hireDate: '2024-01-15',
     avatar: '',
     bio: 'System administrator with full access to all features.'
   });
@@ -44,13 +43,13 @@ const Settings = () => {
     soundEnabled: true
   });
 
-  // Company State
+  // Company State - INITIALLY EMPTY, WILL LOAD FROM AUTH DATABASE
   const [company, setCompany] = useState({
-    name: 'Company Name',
-    email: 'info@company.com',
-    phone: '+63 2 123 4567',
+    name: '',
+    email: '',
+    phone: '',
     taxId: '123-456-789-000',
-    address: '123 Business Ave, Makati City, Philippines',
+    address: '',
     currency: 'PHP',
     timezone: 'Asia/Manila',
     workDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
@@ -61,19 +60,40 @@ const Settings = () => {
   // Load user profile from database on component mount
   useEffect(() => {
     loadUserProfile();
+    loadCompanyInfo(); // Load company info from auth database
   }, []);
+
+  // Load company information from auth database
+  const loadCompanyInfo = async () => {
+    try {
+      const regInfo = await window.electronAPI.getRegistrationInfo();
+      if (regInfo && regInfo.success && regInfo.data) {
+        const companyData = regInfo.data;
+        setCompanyInfo(companyData);
+        
+        // Update company state with data from auth database
+        setCompany(prev => ({
+          ...prev,
+          name: companyData.company_name || '',
+          email: companyData.company_email || '',
+          phone: companyData.company_phone || '',
+          address: companyData.company_address || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading company info:', error);
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
       const userData = await window.electronAPI.getUserSettings(currentUserEmail);
       if (userData) {
         setProfile({
-          email: userData.email || 'admin@company.com',
-          displayName: userData.displayName || 'Admin User',
-          phone: userData.phone || '+63 912 345 6789',
+          email: userData.email || 'adminpro@company.com',
+          displayName: userData.displayName || 'Admin Pro',
+          phone: userData.phone || '+63(900)000-0000',
           position: userData.position || 'System Administrator',
-          department: userData.department || 'IT Department',
-          hireDate: userData.hireDate || '2024-01-15',
           avatar: userData.avatar || '',
           bio: userData.bio || 'System administrator with full access to all features.'
         });
@@ -122,6 +142,28 @@ const Settings = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Save company info to auth database
+  const saveCompanyInfo = async () => {
+    try {
+      // This would require a new IPC handler to update company info
+      // For now, we'll just save to local storage
+      localStorage.setItem('companyInfo', JSON.stringify(company));
+      
+      setSaveStatus({
+        type: 'success',
+        message: 'Company information saved!'
+      });
+      
+      setTimeout(() => setSaveStatus(null), 3000);
+    } catch (error) {
+      console.error('Error saving company info:', error);
+      setSaveStatus({
+        type: 'error',
+        message: 'Failed to save company information'
+      });
+    }
   };
 
   // Handle avatar upload
@@ -173,41 +215,38 @@ const Settings = () => {
 
   // Save settings to database
   const saveSettings = async () => {
-  setLoading(true);
-  setSaveStatus(null);
-  
-  try {
-    // Prepare user data for database
-    const userData = {
-      email: profile.email, // This is the NEW email
-      displayName: profile.displayName,
-      avatar: profile.avatar,
-      phone: profile.phone,
-      position: profile.position,
-      department: profile.department,
-      hireDate: profile.hireDate,
-      bio: profile.bio,
-      themePreference: appearance.theme,
-      language: appearance.language
-    };
+    setLoading(true);
+    setSaveStatus(null);
     
-    // Save to database - using the NEW email
-    await window.electronAPI.saveUserProfile(userData);
-    
-    // Update currentUserEmail state with the new email
-    setCurrentUserEmail(profile.email);
-    
-    // Update UserContext with the new email
-    window.dispatchEvent(new CustomEvent('profileUpdated', { 
-      detail: { 
+    try {
+      // Prepare user data for database - REMOVED department and hireDate
+      const userData = {
+        email: profile.email,
         displayName: profile.displayName,
         avatar: profile.avatar,
-        email: profile.email, // Send the new email too
+        phone: profile.phone,
         position: profile.position,
-        department: profile.department
-      } 
-    }));
+        bio: profile.bio,
+        themePreference: appearance.theme,
+        language: appearance.language
+      };
       
+      // Save to database - using the NEW email
+      await window.electronAPI.saveUserProfile(userData);
+      
+      // Update currentUserEmail state with the new email
+      setCurrentUserEmail(profile.email);
+      
+      // Update UserContext with the new email
+      window.dispatchEvent(new CustomEvent('profileUpdated', { 
+        detail: { 
+          displayName: profile.displayName,
+          avatar: profile.avatar,
+          email: profile.email,
+          position: profile.position
+        } 
+      }));
+        
     } catch (error) {
       console.error('Error saving settings:', error);
       setSaveStatus({
@@ -218,18 +257,6 @@ const Settings = () => {
       setLoading(false);
     }
   };
-
-  // Load saved settings
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      if (parsed.profile) setProfile(parsed.profile);
-      if (parsed.appearance) setAppearance(parsed.appearance);
-      if (parsed.company) setCompany(parsed.company);
-      if (parsed.security) setSecurity(parsed.security);
-    }
-  }, []);
 
   // Tabs configuration
   const tabs = [
@@ -248,7 +275,7 @@ const Settings = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
         </div>
 
@@ -294,7 +321,7 @@ const Settings = () => {
               {/* Save Button */}
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <button
-                  onClick={saveSettings}
+                  onClick={activeTab === 'company' ? saveCompanyInfo : saveSettings}
                   disabled={loading}
                   className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -321,7 +348,7 @@ const Settings = () => {
               {activeTab === 'profile' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Profile Settings</h2>
+                    <h2 className="text-l font-semibold text-gray-900">Profile Settings</h2>
                     <p className="text-gray-600 mt-1">Manage your personal information</p>
                   </div>
 
@@ -361,7 +388,7 @@ const Settings = () => {
                     </div>
                   </div>
 
-                  {/* Profile Form */}
+                  {/* Profile Form - REMOVED Department and Hire Date fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -417,33 +444,6 @@ const Settings = () => {
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Department
-                      </label>
-                      <input
-                        type="text"
-                        value={profile.department}
-                        onChange={(e) => handleProfileChange('department', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Hire Date
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={18} className="text-gray-400" />
-                        <input
-                          type="date"
-                          value={profile.hireDate}
-                          onChange={(e) => handleProfileChange('hireDate', e.target.value)}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Bio / Description
@@ -463,7 +463,7 @@ const Settings = () => {
               {activeTab === 'security' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Security Settings</h2>
+                    <h2 className="text-l font-semibold text-gray-900">Security Settings</h2>
                     <p className="text-gray-600 mt-1">Manage your password and security preferences</p>
                   </div>
 
@@ -593,7 +593,7 @@ const Settings = () => {
               {activeTab === 'appearance' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Appearance Settings</h2>
+                    <h2 className="text-l font-semibold text-gray-900">Appearance Settings</h2>
                     <p className="text-gray-600 mt-1">Customize how the application looks</p>
                   </div>
 
@@ -741,199 +741,226 @@ const Settings = () => {
                 </div>
               )}
 
-              {/* Company Tab */}
+              {/* Company Tab - UPDATED TO USE AUTH DATABASE */}
               {activeTab === 'company' && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Company Settings</h2>
-                    <p className="text-gray-600 mt-1">Configure your company information</p>
+                    <h2 className="text-l font-semibold text-gray-900">Company Settings</h2>
+                    <p className="text-gray-600 mt-1">
+                      {companyInfo ? 'Configure your company information' : 'Loading company information...'}
+                    </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Name
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Building size={18} className="text-gray-400" />
+                  {companyInfo && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Name
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Building size={18} className="text-gray-400" />
+                          <input
+                            type="text"
+                            value={company.name}
+                            onChange={(e) => handleCompanyChange('name', e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled // Make read-only since it comes from auth database
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          From registration database
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Email
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Mail size={18} className="text-gray-400" />
+                          <input
+                            type="email"
+                            value={company.email}
+                            onChange={(e) => handleCompanyChange('email', e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled // Make read-only since it comes from auth database
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          From registration database
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Phone
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <Phone size={18} className="text-gray-400" />
+                          <input
+                            type="tel"
+                            value={company.phone}
+                            onChange={(e) => handleCompanyChange('phone', e.target.value)}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled // Make read-only since it comes from auth database
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          From registration database
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tax ID
+                        </label>
                         <input
                           type="text"
-                          value={company.name}
-                          onChange={(e) => handleCompanyChange('name', e.target.value)}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          value={company.taxId}
+                          onChange={(e) => handleCompanyChange('taxId', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Email
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Mail size={18} className="text-gray-400" />
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Company Address
+                        </label>
+                        <div className="flex items-start gap-2">
+                          <MapPin size={18} className="text-gray-400 mt-2" />
+                          <textarea
+                            value={company.address}
+                            onChange={(e) => handleCompanyChange('address', e.target.value)}
+                            rows={2}
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled // Make read-only since it comes from auth database
+                          />
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          From registration database
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Currency
+                        </label>
+                        <select
+                          value={company.currency}
+                          onChange={(e) => handleCompanyChange('currency', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="PHP">Philippine Peso (₱)</option>
+                          <option value="USD">US Dollar ($)</option>
+                          <option value="EUR">Euro (€)</option>
+                          <option value="GBP">British Pound (£)</option>
+                          <option value="JPY">Japanese Yen (¥)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Timezone
+                        </label>
+                        <select
+                          value={company.timezone}
+                          onChange={(e) => handleCompanyChange('timezone', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="Asia/Manila">Philippine Time (GMT+8)</option>
+                          <option value="America/New_York">Eastern Time (GMT-5)</option>
+                          <option value="Europe/London">London Time (GMT+0)</option>
+                          <option value="Asia/Tokyo">Japan Time (GMT+9)</option>
+                          <option value="Australia/Sydney">Sydney Time (GMT+11)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Work Days
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                            <label key={day} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={company.workDays.includes(day)}
+                                onChange={(e) => {
+                                  const newWorkDays = e.target.checked
+                                    ? [...company.workDays, day]
+                                    : company.workDays.filter(d => d !== day);
+                                  handleCompanyChange('workDays', newWorkDays);
+                                }}
+                                className="rounded text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-sm">{day.substring(0, 3)}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Work Hours
+                        </label>
                         <input
-                          type="email"
-                          value={company.email}
-                          onChange={(e) => handleCompanyChange('email', e.target.value)}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          type="text"
+                          value={company.workHours}
+                          onChange={(e) => handleCompanyChange('workHours', e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="e.g., 9:00 AM - 6:00 PM"
                         />
                       </div>
-                    </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Phone
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <Phone size={18} className="text-gray-400" />
-                        <input
-                          type="tel"
-                          value={company.phone}
-                          onChange={(e) => handleCompanyChange('phone', e.target.value)}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tax ID
-                      </label>
-                      <input
-                        type="text"
-                        value={company.taxId}
-                        onChange={(e) => handleCompanyChange('taxId', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Address
-                      </label>
-                      <div className="flex items-start gap-2">
-                        <MapPin size={18} className="text-gray-400 mt-2" />
-                        <textarea
-                          value={company.address}
-                          onChange={(e) => handleCompanyChange('address', e.target.value)}
-                          rows={2}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Currency
-                      </label>
-                      <select
-                        value={company.currency}
-                        onChange={(e) => handleCompanyChange('currency', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="PHP">Philippine Peso (₱)</option>
-                        <option value="USD">US Dollar ($)</option>
-                        <option value="EUR">Euro (€)</option>
-                        <option value="GBP">British Pound (£)</option>
-                        <option value="JPY">Japanese Yen (¥)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Timezone
-                      </label>
-                      <select
-                        value={company.timezone}
-                        onChange={(e) => handleCompanyChange('timezone', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="Asia/Manila">Philippine Time (GMT+8)</option>
-                        <option value="America/New_York">Eastern Time (GMT-5)</option>
-                        <option value="Europe/London">London Time (GMT+0)</option>
-                        <option value="Asia/Tokyo">Japan Time (GMT+9)</option>
-                        <option value="Australia/Sydney">Sydney Time (GMT+11)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Work Days
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
-                          <label key={day} className="flex items-center gap-2">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Payroll Cutoff Days
+                        </label>
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">1st Cutoff:</span>
                             <input
-                              type="checkbox"
-                              checked={company.workDays.includes(day)}
+                              type="number"
+                              min="1"
+                              max="31"
+                              value={company.cutoffDays[0]}
                               onChange={(e) => {
-                                const newWorkDays = e.target.checked
-                                  ? [...company.workDays, day]
-                                  : company.workDays.filter(d => d !== day);
-                                handleCompanyChange('workDays', newWorkDays);
+                                const newCutoffDays = [...company.cutoffDays];
+                                newCutoffDays[0] = parseInt(e.target.value);
+                                handleCompanyChange('cutoffDays', newCutoffDays);
                               }}
-                              className="rounded text-blue-600 focus:ring-blue-500"
+                              className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
-                            <span className="text-sm">{day.substring(0, 3)}</span>
-                          </label>
-                        ))}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">2nd Cutoff:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="31"
+                              value={company.cutoffDays[1]}
+                              onChange={(e) => {
+                                const newCutoffDays = [...company.cutoffDays];
+                                newCutoffDays[1] = parseInt(e.target.value);
+                                handleCompanyChange('cutoffDays', newCutoffDays);
+                              }}
+                              className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Note: First cutoff is paid on the 10th, second cutoff on the 25th
+                        </p>
                       </div>
                     </div>
+                  )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Work Hours
-                      </label>
-                      <input
-                        type="text"
-                        value={company.workHours}
-                        onChange={(e) => handleCompanyChange('workHours', e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="e.g., 9:00 AM - 6:00 PM"
-                      />
+                  {!companyInfo && (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Loading company information from registration...</p>
                     </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Payroll Cutoff Days
-                      </label>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">1st Cutoff:</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={company.cutoffDays[0]}
-                            onChange={(e) => {
-                              const newCutoffDays = [...company.cutoffDays];
-                              newCutoffDays[0] = parseInt(e.target.value);
-                              handleCompanyChange('cutoffDays', newCutoffDays);
-                            }}
-                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">2nd Cutoff:</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={company.cutoffDays[1]}
-                            onChange={(e) => {
-                              const newCutoffDays = [...company.cutoffDays];
-                              newCutoffDays[1] = parseInt(e.target.value);
-                              handleCompanyChange('cutoffDays', newCutoffDays);
-                            }}
-                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Note: First cutoff is paid on the 10th, second cutoff on the 25th
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -941,7 +968,7 @@ const Settings = () => {
               {activeTab === 'notifications' && (
                 <div className="text-center py-12">
                   <Bell size={48} className="mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900">Notifications Settings</h3>
+                  <h3 className="text-l font-semibold text-gray-900">Notifications Settings</h3>
                   <p className="text-gray-600 mt-2">Configure your notification preferences</p>
                   <p className="text-sm text-gray-500 mt-4">Coming soon...</p>
                 </div>
@@ -950,7 +977,7 @@ const Settings = () => {
               {activeTab === 'billing' && (
                 <div className="text-center py-12">
                   <CreditCard size={48} className="mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900">Billing Settings</h3>
+                  <h3 className="text-l font-semibold text-gray-900">Billing Settings</h3>
                   <p className="text-gray-600 mt-2">Manage your subscription and billing</p>
                   <p className="text-sm text-gray-500 mt-4">Coming soon...</p>
                 </div>
@@ -959,7 +986,7 @@ const Settings = () => {
               {activeTab === 'backup' && (
                 <div className="text-center py-12">
                   <Database size={48} className="mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900">Backup & Restore</h3>
+                  <h3 className="text-l font-semibold text-gray-900">Backup & Restore</h3>
                   <p className="text-gray-600 mt-2">Backup your data or restore from backup</p>
                   <div className="mt-6 flex justify-center gap-4">
                     <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -977,7 +1004,7 @@ const Settings = () => {
               {activeTab === 'admin' && (
                 <div className="text-center py-12">
                   <Shield size={48} className="mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900">Admin Settings</h3>
+                  <h3 className="text-l font-semibold text-gray-900">Admin Settings</h3>
                   <p className="text-gray-600 mt-2">Advanced system configuration</p>
                   <div className="mt-6 max-w-md mx-auto bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex items-center gap-3">

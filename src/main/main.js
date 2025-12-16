@@ -25,16 +25,18 @@ function createWindow() {
     show: false,
     backgroundColor: '#FFFFFF',
     webPreferences: {
-      zoomFactor: 0.7,
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
       sandbox: true
     },
-    icon: path.join(__dirname, '../../icons/admin.ico'),
+    icon: path.join(__dirname, '../../icons/adminpro.ico'),
     titleBarStyle: 'default'
   });
+
+  // Maximize the window automatically
+  mainWindow.maximize();
 
   // Load the app
   if (process.env.NODE_ENV === 'development') {
@@ -108,14 +110,14 @@ function createMenu() {
           label: 'Documentation',
           click: async () => {
             const { shell } = require('electron');
-            await shell.openExternal('https://github.com/carlodandan/company-admin-pro/wiki');
+            await shell.openExternal('https://github.com/carlodandan/admin-pro/wiki');
           }
         },
         {
           label: 'Report Issue',
           click: async () => {
             const { shell } = require('electron');
-            await shell.openExternal('https://github.com/carlodandan/company-admin-pro/issues');
+            await shell.openExternal('https://github.com/carlodandan/admin-pro/issues');
           }
         }
       ]
@@ -610,5 +612,33 @@ ipcMain.handle('user:get-settings', async (event, email) => {
   } catch (error) {
     console.error('Error getting user settings:', error);
     return null;
+  }
+});
+
+ipcMain.handle('auth:update-company-info', async (event, companyData) => {
+  try {
+    const stmt = authService.db.prepare(`
+      UPDATE registrations 
+      SET 
+        company_name = ?,
+        company_address = ?,
+        company_phone = ?,
+        company_email = ?,
+        updated_at = ?
+      WHERE is_registered = 1
+    `);
+    
+    stmt.run(
+      companyData.name,
+      companyData.address,
+      companyData.phone,
+      companyData.email,
+      new Date().toISOString()
+    );
+    
+    return { success: true, message: 'Company information updated' };
+  } catch (error) {
+    console.error('Error updating company info:', error);
+    return { success: false, error: error.message };
   }
 });

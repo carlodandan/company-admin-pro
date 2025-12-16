@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getUserProfile: (email) => ipcRenderer.invoke('user:get-profile', email),
   updateUserAvatar: (email, avatarData) => ipcRenderer.invoke('user:update-avatar', email, avatarData),
   getUserSettings: (email) => ipcRenderer.invoke('user:get-settings', email),
+  updateCompanyInfo: (companyData) => ipcRenderer.invoke('auth:update-company-info', companyData),
   
   // Admin functions
   resetRegistration: () => ipcRenderer.invoke('auth:reset-registration'),

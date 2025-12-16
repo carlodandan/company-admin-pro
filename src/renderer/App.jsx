@@ -207,7 +207,7 @@ function App() {
           {/* Protected Routes */}
           <Route path="/" element={
             <ProtectedRoute isAuthenticated={isAuthenticated}>
-              <Layout userInfo={userInfo} onLogout={handleLogout} />
+                <Layout userInfo={userInfo} onLogout={handleLogout} />
             </ProtectedRoute>
           }>
             <Route index element={<Navigate to="/dashboard" replace />} />

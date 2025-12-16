@@ -204,7 +204,7 @@ const Employees = () => {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Employee Management</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Employee Management</h1>
           <p className="text-gray-600 mt-1">Manage all employee information, departments, and roles</p>
         </div>
         <div className="flex gap-3">
@@ -227,11 +227,11 @@ const Employees = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-gray-200">
+        <div className="bg-white p-2 rounded-xl border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-gray-600">Total Employees</p>
-              <p className="text-2xl font-bold mt-1">{stats.totalEmployees}</p>
+              <p className="text-xl font-bold mt-1">{stats.totalEmployees}</p>
             </div>
             <div className="p-2 bg-blue-50 rounded-lg">
               <Users className="text-blue-500" size={20} />
@@ -242,11 +242,11 @@ const Employees = () => {
           </p>
         </div>
         
-        <div className="bg-white p-5 rounded-xl border border-gray-200">
+        <div className="bg-white p-2 rounded-xl border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-gray-600">Active</p>
-              <p className="text-2xl font-bold mt-1">{stats.activeToday}</p>
+              <p className="text-xl font-bold mt-1">{stats.activeToday}</p>
             </div>
             <div className="p-2 bg-green-50 rounded-lg">
               <Users className="text-green-500" size={20} />
@@ -257,11 +257,11 @@ const Employees = () => {
           </p>
         </div>
         
-        <div className="bg-white p-5 rounded-xl border border-gray-200">
+        <div className="bg-white p-2 rounded-xl border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-gray-600">On Leave</p>
-              <p className="text-2xl font-bold mt-1">{stats.onLeave}</p>
+              <p className="text-xl font-bold mt-1">{stats.onLeave}</p>
             </div>
             <div className="p-2 bg-yellow-50 rounded-lg">
               <Calendar className="text-yellow-500" size={20} />
@@ -272,11 +272,11 @@ const Employees = () => {
           </p>
         </div>
         
-        <div className="bg-white p-5 rounded-xl border border-gray-200">
+        <div className="bg-white p-2 rounded-xl border border-gray-200">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-sm text-gray-600">Avg. Annual Salary</p>
-              <p className="text-2xl font-bold mt-1">{formatCurrency(stats.avgSalary)}</p>
+              <p className="text-xl font-bold mt-1">{formatCurrency(stats.avgSalary)}</p>
             </div>
             <div className="p-2 bg-purple-50 rounded-lg">
               <CreditCard className="text-purple-500" size={20} />

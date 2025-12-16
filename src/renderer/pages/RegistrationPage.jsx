@@ -153,7 +153,7 @@ const RegistrationPage = ({ onRegister }) => {
       <div className="w-full max-w-lg">
         {/* Header - More Compact */}
         <div className="text-center mb-4">
-          <h1 className="text-xl font-bold text-black mb-1">Admin System Setup</h1>
+          <h1 className="text-l font-bold text-black mb-1">Admin System Setup</h1>
         </div>
 
         {/* Registration Card - Smaller */}

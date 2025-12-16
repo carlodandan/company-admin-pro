@@ -315,7 +315,7 @@ const Payroll = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Payroll Management</h1>
+          <h1 className="text-xl font-bold text-gray-900">Payroll Management</h1>
           <p className="text-gray-600 mt-1">
             {selectedPeriod.cutoffType === 'Full Month' 
               ? 'Monthly payroll processing (24 working days)' 
@@ -367,14 +367,14 @@ const Payroll = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Payroll</p>
-              <p className="text-2xl font-bold">
+              <p className="font-xs text-gray-600">Total Payroll</p>
+              <p className="text-xl font-bold">
                 {formatCurrency(payrollData.reduce((sum, p) => sum + p.net_salary, 0))}
               </p>
             </div>
             <Banknote className="text-blue-500" size={24} />
           </div>
-          <div className="mt-2 text-sm text-gray-500">
+          <div className="mt-2 font-xs text-gray-500">
             {payrollData.filter(p => p.status === 'Paid').length} paid • {selectedPeriod.cutoffType}
           </div>
         </div>
@@ -382,14 +382,14 @@ const Payroll = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Employees</p>
-              <p className="text-2xl font-bold">
+              <p className="font-xs text-gray-600">Active Employees</p>
+              <p className="text-xl font-bold">
                 {employees.filter(e => e.status === 'Active').length}
               </p>
             </div>
             <Users className="text-green-500" size={24} />
           </div>
-          <div className="mt-2 text-sm text-gray-500">
+          <div className="mt-2 font-xs text-gray-500">
             Total: {employees.length}
           </div>
         </div>
@@ -397,14 +397,14 @@ const Payroll = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pending Payments</p>
-              <p className="text-2xl font-bold">
+              <p className="font-xs text-gray-600">Pending Payments</p>
+              <p className="text-xl font-bold">
                 {payrollData.filter(p => p.status === 'Pending').length}
               </p>
             </div>
             <Clock className="text-yellow-500" size={24} />
           </div>
-          <div className="mt-2 text-sm text-gray-500">
+          <div className="mt-2 font-xs text-gray-500">
             Require processing
           </div>
         </div>
@@ -412,8 +412,8 @@ const Payroll = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Avg. Net Pay</p>
-              <p className="text-2xl font-bold">
+              <p className="font-xs text-gray-600">Avg. Net Pay</p>
+              <p className="text-xl font-bold">
                 {formatCurrency(
                   payrollData.length > 0 
                     ? payrollData.reduce((sum, p) => sum + p.net_salary, 0) / payrollData.length
@@ -423,7 +423,7 @@ const Payroll = () => {
             </div>
             <PhilippinePeso className="text-purple-500" size={24} />
           </div>
-          <div className="mt-2 text-sm text-gray-500">
+          <div className="mt-2 font-xs text-gray-500">
             Average take-home pay
           </div>
         </div>
@@ -434,7 +434,7 @@ const Payroll = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setViewMode('summary')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-1 border-b-2 font-medium font-xs ${
               viewMode === 'summary'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -447,7 +447,7 @@ const Payroll = () => {
           </button>
           <button
             onClick={() => setViewMode('details')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-1 border-b-2 font-medium font-xs ${
               viewMode === 'details'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -460,7 +460,7 @@ const Payroll = () => {
           </button>
           <button
             onClick={() => setViewMode('process')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+            className={`py-4 px-1 border-b-2 font-medium font-xs ${
               viewMode === 'process'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -563,13 +563,13 @@ const Payroll = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-semibold">Recent Payroll Records</h3>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 font-xs">
                     {selectedPeriod.cutoffType} • {getMonthName(selectedPeriod.year, selectedPeriod.month)}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowCutoffDetails(!showCutoffDetails)}
-                  className="flex items-center gap-2 px-3 py-1 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
+                  className="flex items-center gap-2 px-3 py-1 font-xs bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   {showCutoffDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   {showCutoffDetails ? 'Hide Details' : 'Show Details'}
@@ -580,18 +580,18 @@ const Payroll = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Employee</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Employee</th>
                     {showCutoffDetails && selectedPeriod.cutoffType !== 'Full Month' && (
                       <>
-                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Days Present</th>
-                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Daily Rate</th>
+                        <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Days Present</th>
+                        <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Daily Rate</th>
                       </>
                     )}
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Basic Salary</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Deductions</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Net Pay</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Basic Salary</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Deductions</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Net Pay</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Status</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -599,14 +599,14 @@ const Payroll = () => {
                     <tr key={payroll.id} className="hover:bg-gray-50">
                       <td className="py-4 px-4">
                         <p className="font-medium">{payroll.employee_name}</p>
-                        <p className="text-sm text-gray-500">{payroll.position}</p>
+                        <p className="text-xs text-gray-500">{payroll.position}</p>
                       </td>
                       {showCutoffDetails && selectedPeriod.cutoffType !== 'Full Month' && (
                         <>
                           <td className="py-4 px-4">
                             <div className="flex items-center">
                               <span className="font-medium">{payroll.days_present || 0}</span>
-                              <span className="text-sm text-gray-500 ml-2">/ {payroll.working_days || 12} days</span>
+                              <span className="text-xs text-gray-500 ml-2">/ {payroll.working_days || 12} days</span>
                             </div>
                           </td>
                           <td className="py-4 px-4">
@@ -614,19 +614,19 @@ const Payroll = () => {
                           </td>
                         </>
                       )}
-                      <td className="py-4 px-4 font-semibold">
+                      <td className="py-4 px-4 font-semibold text-xs">
                         {formatCurrency(payroll.basic_salary)}
                       </td>
                       <td className="py-4 px-4 text-red-600 font-medium">
                         -{formatCurrency(payroll.deductions)}
                       </td>
                       <td className="py-4 px-4">
-                        <p className="font-bold text-lg text-green-600">
+                        <p className="font-bold text-md text-green-600">
                           {formatCurrency(payroll.net_salary)}
                         </p>
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(payroll.status)}`}>
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(payroll.status)}`}>
                           {getStatusIcon(payroll.status)}
                           {payroll.status}
                         </span>
@@ -635,7 +635,7 @@ const Payroll = () => {
                         <div className="flex gap-2">
                           <button 
                             onClick={() => setSelectedPayroll(payroll)}
-                            className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                            className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
                           >
                             View
                           </button>
@@ -650,7 +650,7 @@ const Payroll = () => {
                                   alert('Error marking as paid: ' + error.message);
                                 }
                               }}
-                              className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                              className="px-3 py-1 font-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
                             >
                               Mark Paid
                             </button>
@@ -671,7 +671,7 @@ const Payroll = () => {
           <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <div>
               <h3 className="text-lg font-semibold">All Payroll Records</h3>
-              <p className="text-gray-600 text-sm">Complete payroll history</p>
+              <p className="text-gray-600 font-xs">Complete payroll history</p>
             </div>
             <div className="flex gap-2">
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -688,27 +688,27 @@ const Payroll = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">ID</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Employee</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Period</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Cutoff</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Gross Salary</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Deductions</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Net Salary</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Payment Date</th>
-                  <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">ID</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Employee</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Period</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Cutoff</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Gross Salary</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Deductions</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Net Salary</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Status</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Payment Date</th>
+                  <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {payrollData.map((payroll) => (
                   <tr key={payroll.id} className="hover:bg-gray-50">
-                    <td className="py-4 px-4 font-mono text-sm text-gray-500">
+                    <td className="py-4 px-4 font-mono font-xs text-gray-500">
                       #{payroll.id.toString().padStart(4, '0')}
                     </td>
                     <td className="py-4 px-4">
                       <p className="font-medium">{payroll.employee_name}</p>
-                      <p className="text-sm text-gray-500">{payroll.position}</p>
+                      <p className="font-xs text-gray-500">{payroll.position}</p>
                     </td>
                     <td className="py-4 px-4">
                       {new Date(payroll.period_start).toLocaleDateString('en-PH', { month: 'short', year: 'numeric' })}
@@ -731,7 +731,7 @@ const Payroll = () => {
                       </p>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(payroll.status)}`}>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full font-xs font-medium ${getStatusColor(payroll.status)}`}>
                         {getStatusIcon(payroll.status)}
                         {payroll.status}
                       </span>
@@ -747,7 +747,7 @@ const Payroll = () => {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => setSelectedPayroll(payroll)}
-                          className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                          className="px-3 py-1 font-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
                         >
                           Details
                         </button>
@@ -806,21 +806,21 @@ const Payroll = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Employee</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Position</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Employee</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Position</th>
                     {selectedPeriod.cutoffType !== 'Full Month' && (
                       <>
-                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Monthly Salary</th>
-                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Days Present</th>
-                        <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Daily Rate</th>
+                        <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Monthly Salary</th>
+                        <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Days Present</th>
+                        <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Daily Rate</th>
                       </>
                     )}
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Basic Salary</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">SSS</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">PhilHealth</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Pag-IBIG</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Income Tax</th>
-                    <th className="py-3 px-4 text-left text-sm font-semibold text-gray-700">Net Pay</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Basic Salary</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">SSS</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">PhilHealth</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Pag-IBIG</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Income Tax</th>
+                    <th className="py-3 px-4 text-left font-xs font-semibold text-gray-700">Net Pay</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -839,7 +839,7 @@ const Payroll = () => {
                       <tr key={employee.id} className="hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <p className="font-medium">{employee.first_name} {employee.last_name}</p>
-                          <p className="text-sm text-gray-500">{employee.company_id}</p>
+                          <p className="font-xs text-gray-500">{employee.company_id}</p>
                         </td>
                         <td className="py-4 px-4">{employee.position}</td>
                         {selectedPeriod.cutoffType !== 'Full Month' && (
@@ -850,7 +850,7 @@ const Payroll = () => {
                             <td className="py-4 px-4">
                               <div className="flex items-center">
                                 <span className="font-medium">{employee.attendance?.days_present || 0}</span>
-                                <span className="text-sm text-gray-500 ml-2">/ 12 days</span>
+                                <span className="font-xs text-gray-500 ml-2">/ 12 days</span>
                               </div>
                             </td>
                             <td className="py-4 px-4">
@@ -890,16 +890,16 @@ const Payroll = () => {
           <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold">
+                <p className="font-xs text-gray-600">Total Employees</p>
+                <p className="text-xl font-bold">
                   {selectedPeriod.cutoffType === 'Full Month' 
                     ? employees.filter(e => e.status === 'Active').length
                     : calculateBiMonthlySummary().totalEmployees}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Gross Salary</p>
-                <p className="text-2xl font-bold">
+                <p className="font-xs text-gray-600">Total Gross Salary</p>
+                <p className="text-xl font-bold">
                   {formatCurrency(
                     selectedPeriod.cutoffType === 'Full Month' 
                       ? employees.filter(e => e.status === 'Active').reduce((sum, e) => sum + (e.salary || 0), 0)
@@ -908,8 +908,8 @@ const Payroll = () => {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Deductions</p>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="font-xs text-gray-600">Total Deductions</p>
+                <p className="text-xl font-bold text-red-600">
                   {formatCurrency(
                     selectedPeriod.cutoffType === 'Full Month' 
                       ? employees.filter(e => e.status === 'Active').reduce((sum, employee) => {
@@ -921,8 +921,8 @@ const Payroll = () => {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Net Pay</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="font-xs text-gray-600">Total Net Pay</p>
+                <p className="text-xl font-bold text-green-600">
                   {formatCurrency(
                     selectedPeriod.cutoffType === 'Full Month' 
                       ? employees.filter(e => e.status === 'Active').reduce((sum, employee) => {
@@ -945,7 +945,7 @@ const Payroll = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-xl font-bold">Payroll Details</h3>
+                  <h3 className="text-l font-bold">Payroll Details</h3>
                   <p className="text-gray-600">
                     #{selectedPayroll.id.toString().padStart(4, '0')} • {selectedPayroll.employee_name}
                     {selectedPayroll.cutoff_type && ` • ${selectedPayroll.cutoff_type}`}
@@ -998,10 +998,10 @@ const PayrollBreakdownView = ({ breakdown }) => {
             <CalendarDays className="text-blue-500" />
             <div>
               <h4 className="font-semibold text-gray-700">{breakdown.cutoffType}</h4>
-              <p className="text-sm text-gray-600">
+              <p className="font-xs text-gray-600">
                 {breakdown.workingDays} working days • {breakdown.daysPresent || 12} days present
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="font-xs text-gray-600">
                 Daily Rate: {formatCurrency(breakdown.dailyRate)}
               </p>
             </div>
@@ -1035,7 +1035,7 @@ const PayrollBreakdownView = ({ breakdown }) => {
         <h4 className="font-semibold text-gray-700 mb-3">Deductions</h4>
         <div className="space-y-4">
           <div>
-            <h5 className="text-sm font-medium text-gray-600 mb-2">Mandatory Contributions</h5>
+            <h5 className="font-xs font-medium text-gray-600 mb-2">Mandatory Contributions</h5>
             <div className="space-y-2 ml-4">
               <div className="flex justify-between">
                 <span>SSS:</span>
@@ -1098,12 +1098,12 @@ const PayrollBreakdownView = ({ breakdown }) => {
       <div className="bg-green-50 p-4 rounded-lg border border-green-100">
         <div className="flex justify-between items-center">
           <div>
-            <p className="text-sm text-gray-600">Net Salary (Take Home Pay)</p>
-            <p className="text-3xl font-bold text-green-600">{formatCurrency(breakdown.netSalary)}</p>
+            <p className="font-xs text-gray-600">Net Salary (Take Home Pay)</p>
+            <p className="text-2xl font-bold text-green-600">{formatCurrency(breakdown.netSalary)}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-600">Total Employment Cost</p>
-            <p className="text-xl font-bold">
+            <p className="font-xs text-gray-600">Total Employment Cost</p>
+            <p className="text-l font-bold">
               {formatCurrency(breakdown.grossSalary + breakdown.employerContributions.total)}
             </p>
           </div>

@@ -336,7 +336,7 @@ const PayrollSummary = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-600">Total Payroll This Month</p>
-            <p className="text-2xl font-bold">{formatCurrency(payrollData.total)}</p>
+            <p className="text-xl font-bold">{formatCurrency(payrollData.total)}</p>
             <p className="text-xs text-gray-500 mt-1">
               Average: {formatCurrency(payrollData.employees.length > 0 ? payrollData.total / payrollData.employees.length : 0)}
             </p>
@@ -344,7 +344,7 @@ const PayrollSummary = () => {
           <div>
             <p className="text-sm text-gray-600">Employees to Pay</p>
             <div className="flex items-center gap-4">
-              <p className="text-2xl font-bold">{payrollData.employees.length}</p>
+              <p className="text-xl font-bold">{payrollData.employees.length}</p>
               <div className="flex gap-2">
                 <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
                   {payrollData.paid} Paid

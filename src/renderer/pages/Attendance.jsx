@@ -173,7 +173,7 @@ const Attendance = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Attendance</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Attendance</h1>
           <p className="text-gray-600 mt-1">Track and manage employee attendance</p>
         </div>
         <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ const Attendance = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Employees</p>
-              <p className="text-2xl font-bold mt-1">{totalEmployees}</p>
+              <p className="text-xl font-bold mt-1">{totalEmployees}</p>
             </div>
             <Users className="text-blue-500" size={24} />
           </div>
@@ -238,7 +238,7 @@ const Attendance = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Present Today</p>
-              <p className="text-2xl font-bold mt-1 text-green-600">{presentCount}</p>
+              <p className="text-xl font-bold mt-1 text-green-600">{presentCount}</p>
             </div>
             <CheckCircle className="text-green-500" size={24} />
           </div>
@@ -248,7 +248,7 @@ const Attendance = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Absent Today</p>
-              <p className="text-2xl font-bold mt-1 text-red-600">{absentCount}</p>
+              <p className="text-xl font-bold mt-1 text-red-600">{absentCount}</p>
             </div>
             <XCircle className="text-red-500" size={24} />
           </div>
@@ -258,7 +258,7 @@ const Attendance = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Attendance Rate</p>
-              <p className="text-2xl font-bold mt-1 text-blue-600">
+              <p className="text-xl font-bold mt-1 text-blue-600">
                 {totalEmployees > 0 ? `${((presentCount / totalEmployees) * 100).toFixed(1)}%` : '0%'}
               </p>
             </div>

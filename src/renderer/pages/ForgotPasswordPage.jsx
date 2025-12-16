@@ -197,7 +197,7 @@ const ForgotPasswordPage = ({ onResetPassword }) => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-3">
-            <h1 className="text-xl font-bold text-black mb-1">Reset Admin Password</h1>
+            <h1 className="text-l font-bold text-black mb-1">Reset Admin Password</h1>
             <p className="text-xs text-gray-900 italic">
               Requires Super Admin Password for verification
             </p>

@@ -1,6 +1,6 @@
 {
-  "name": "company-admin-pro",
-  "productName": "Company Admin Pro",
+  "name": "admin-pro",
+  "productName": "Admin Pro",
   "version": "1.0.0",
   "description": "Company Administration System Application",
   "main": ".vite/build/main.js",

@@ -206,7 +206,7 @@ const AttendanceChart = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Present Today</p>
-              <p className="text-2xl font-bold">{summary.presentToday}</p>
+              <p className="text-xl font-bold">{summary.presentToday}</p>
             </div>
             <CheckCircle className="text-green-500" size={24} />
           </div>
@@ -220,7 +220,7 @@ const AttendanceChart = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Absent Today</p>
-              <p className="text-2xl font-bold">{summary.absentToday}</p>
+              <p className="text-xl font-bold">{summary.absentToday}</p>
             </div>
             <XCircle className="text-red-500" size={24} />
           </div>
@@ -234,7 +234,7 @@ const AttendanceChart = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Late Today</p>
-              <p className="text-2xl font-bold">{summary.lateToday || 0}</p>
+              <p className="text-xl font-bold">{summary.lateToday || 0}</p>
             </div>
             <Clock className="text-yellow-500" size={24} />
           </div>
@@ -248,7 +248,7 @@ const AttendanceChart = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Attendance Rate</p>
-              <p className="text-2xl font-bold">{summary.attendanceRate}</p>
+              <p className="text-xl font-bold">{summary.attendanceRate}</p>
             </div>
             <TrendingUp className="text-blue-500" size={24} />
           </div>

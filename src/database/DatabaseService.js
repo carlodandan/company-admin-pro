@@ -110,8 +110,6 @@ class DatabaseService {
         avatar TEXT,
         phone TEXT,
         position TEXT,
-        department TEXT,
-        hire_date DATE,
         bio TEXT,
         theme_preference TEXT DEFAULT 'light',
         language TEXT DEFAULT 'en',
@@ -121,97 +119,101 @@ class DatabaseService {
     `);
   }
 
-// Initialize default admin user
-initializeDefaultUser() {
-  try {
-    // Check if admin user exists
-    const checkStmt = this.db.prepare('SELECT COUNT(*) as count FROM users WHERE email = ?');
-    const result = checkStmt.get('admin@company.com');
-    
-    if (result.count === 0) {
-      const stmt = this.db.prepare(`
-        INSERT INTO users (email, display_name, position, department, hire_date, bio)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
+  // Initialize default admin user - Only one user allowed
+  initializeDefaultUser() {
+    try {
+      // First, check if any user exists
+      const checkStmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+      const result = checkStmt.get();
       
-      stmt.run(
-        'admin@company.com',
-        'Admin User',
-        'System Administrator',
-        'IT Department',
-        new Date().toISOString().split('T')[0],
-        'System administrator with full access to all features.'
-      );
-      console.log('Default admin user created');
+      // Only create default user if the table is completely empty
+      if (result.count === 0) {
+        const stmt = this.db.prepare(`
+          INSERT INTO users (email, display_name, position, bio)
+          VALUES (?, ?, ?, ?)
+        `);
+        
+        stmt.run(
+          'adminpro@company.com',
+          'Admin Pro',
+          'System Administrator',
+          'System administrator with full access to all features.'
+        );
+        console.log('Default admin user created');
+      }
+    } catch (error) {
+      console.error('Error initializing default user:', error);
     }
-  } catch (error) {
-    console.error('Error initializing default user:', error);
   }
-}
 
+  // Save/Update user profile - Always overwrites the existing single user
   saveUserProfile(userData) {
     try {
-      // First, check if we need to update email (user is changing their email)
-      const existingUser = this.getUserProfile(userData.email);
+      // Get the current user count
+      const countStmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+      const countResult = countStmt.get();
       
-      if (existingUser) {
-        // User exists with this email, update it
-        const stmt = this.db.prepare(`
-          UPDATE users SET
-            display_name = ?,
-            avatar = ?,
-            phone = ?,
-            position = ?,
-            department = ?,
-            hire_date = ?,
-            bio = ?,
-            theme_preference = ?,
-            language = ?,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE email = ?
-        `);
-        
-        const info = stmt.run(
-          userData.displayName || '',
-          userData.avatar || null,
-          userData.phone || null,
-          userData.position || null,
-          userData.department || null,
-          userData.hireDate || null,
-          userData.bio || null,
-          userData.themePreference || 'light',
-          userData.language || 'en',
-          userData.email
-        );
-        
-        return { id: existingUser.id, changes: info.changes };
-      } else {
-        // Check if user exists with old email (email change scenario)
-        // This would require knowing the old email, which you don't have in this method
-        // You might need to pass both old and new email
-        
-        // For now, just insert new user
-        const stmt = this.db.prepare(`
+      if (countResult.count === 0) {
+        // No user exists, insert new user
+        const insertStmt = this.db.prepare(`
           INSERT INTO users (
             email, display_name, avatar, phone, position, 
-            department, hire_date, bio, theme_preference, language
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            bio, theme_preference, language
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
         
-        const info = stmt.run(
-          userData.email,
-          userData.displayName || '',
+        const info = insertStmt.run(
+          userData.email || 'adminpro@company.com',
+          userData.displayName || 'Admin Pro',
           userData.avatar || null,
           userData.phone || null,
-          userData.position || null,
-          userData.department || null,
-          userData.hireDate || null,
-          userData.bio || null,
+          userData.position || 'System Administrator',
+          userData.bio || 'System administrator with full access to all features.',
           userData.themePreference || 'light',
           userData.language || 'en'
         );
         
         return { id: info.lastInsertRowid, changes: info.changes };
+      } else {
+        // Always update the first (and only) user
+        // If there are multiple users (shouldn't happen), delete all but the first
+        if (countResult.count > 1) {
+          console.warn('Multiple users found, cleaning up to maintain single user policy');
+          this.cleanupMultipleUsers();
+        }
+        
+        // Get the first user's ID
+        const firstUserStmt = this.db.prepare('SELECT id FROM users ORDER BY id LIMIT 1');
+        const firstUser = firstUserStmt.get();
+        
+        // Update the single user record
+        const updateStmt = this.db.prepare(`
+          UPDATE users SET
+            email = ?,
+            display_name = ?,
+            avatar = ?,
+            phone = ?,
+            position = ?,
+            bio = ?,
+            theme_preference = ?,
+            language = ?,
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `);
+        
+        const info = updateStmt.run(
+          userData.email || 'adminpro@company.com',
+          userData.displayName || 'Admin Pro',
+          userData.avatar || null,
+          userData.phone || null,
+          userData.position || 'System Administrator',
+          userData.bio || 'System administrator with full access to all features.',
+          userData.themePreference || 'light',
+          userData.language || 'en',
+          firstUser.id
+        );
+        
+        return { id: firstUser.id, changes: info.changes };
       }
     } catch (error) {
       console.error('Error saving user profile:', error);
@@ -219,28 +221,53 @@ initializeDefaultUser() {
     }
   }
 
-
-  // Get user profile by email
-  getUserProfile(email) {
+  // Helper method to ensure only one user exists
+  cleanupMultipleUsers() {
     try {
-      const stmt = this.db.prepare('SELECT * FROM users WHERE email = ?');
-      return stmt.get(email);
+      // Get the first user
+      const firstUserStmt = this.db.prepare('SELECT * FROM users ORDER BY id LIMIT 1');
+      const firstUser = firstUserStmt.get();
+      
+      if (firstUser) {
+        // Delete all other users
+        const deleteStmt = this.db.prepare('DELETE FROM users WHERE id != ?');
+        deleteStmt.run(firstUser.id);
+        console.log('Cleaned up multiple users, keeping only:', firstUser.email);
+      }
+    } catch (error) {
+      console.error('Error cleaning up multiple users:', error);
+    }
+  }
+
+  // Get user profile - Always returns the single user
+  getUserProfile() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM users 
+        ORDER BY id LIMIT 1
+      `);
+      return stmt.get();
     } catch (error) {
       console.error('Error getting user profile:', error);
       return null;
     }
   }
 
-  // Update user avatar
-  updateUserAvatar(email, avatarData) {
+  // Update user avatar for the single user
+  updateUserAvatar(avatarData) {
     try {
+      const user = this.getUserProfile();
+      if (!user) {
+        throw new Error('No user found to update avatar');
+      }
+      
       const stmt = this.db.prepare(`
         UPDATE users 
         SET avatar = ?, updated_at = CURRENT_TIMESTAMP 
-        WHERE email = ?
+        WHERE id = ?
       `);
       
-      const info = stmt.run(avatarData, email);
+      const info = stmt.run(avatarData, user.id);
       return { changes: info.changes };
     } catch (error) {
       console.error('Error updating user avatar:', error);
@@ -249,7 +276,7 @@ initializeDefaultUser() {
   }
 
   // Get all user settings (including preferences)
-  getUserSettings(email) {
+  getUserSettings() {
     try {
       const stmt = this.db.prepare(`
         SELECT 
@@ -258,25 +285,46 @@ initializeDefaultUser() {
           avatar,
           phone,
           position,
-          department,
-          hire_date as hireDate,
           bio,
           theme_preference as themePreference,
           language,
           created_at as createdAt,
           updated_at as updatedAt
         FROM users 
-        WHERE email = ?
+        ORDER BY id LIMIT 1
       `);
       
-      return stmt.get(email);
+      return stmt.get();
     } catch (error) {
       console.error('Error getting user settings:', error);
       return null;
     }
   }
 
-  // Employee methods
+  // Delete all users (for reset functionality)
+  deleteAllUsers() {
+    try {
+      const stmt = this.db.prepare('DELETE FROM users');
+      const info = stmt.run();
+      return { changes: info.changes };
+    } catch (error) {
+      console.error('Error deleting all users:', error);
+      throw error;
+    }
+  }
+
+  // Get the current user count (should always be 0 or 1)
+  getUserCount() {
+    try {
+      const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+      return stmt.get().count;
+    } catch (error) {
+      console.error('Error getting user count:', error);
+      return 0;
+    }
+  }
+
+  // Employee methods (unchanged from your original code)
   getAllEmployees() {
     const stmt = this.db.prepare(`
       SELECT 
@@ -377,7 +425,6 @@ initializeDefaultUser() {
     return stmt.all();
   }
 
-  // Create a new department
   createDepartment(department) {
     const stmt = this.db.prepare(`
       INSERT INTO departments (name, budget) 
@@ -393,7 +440,6 @@ initializeDefaultUser() {
     }
   }
 
-  // DatabaseService.js - Add this in the Department methods section
   deleteDepartment(id) {
     try {
       // First check if there are any employees in this department
@@ -431,7 +477,6 @@ initializeDefaultUser() {
     return stmt.all(today);
   }
 
-  // Record attendance
   recordAttendance(attendance) {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO attendance 
@@ -513,7 +558,6 @@ initializeDefaultUser() {
     }
   }
 
-  // Also add a method to get today's summary
   getTodayAttendanceSummary() {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -624,7 +668,6 @@ initializeDefaultUser() {
     return { id: info.lastInsertRowid, changes: info.changes };
   }
 
-  // Get all payroll records
   getAllPayroll() {
     const stmt = this.db.prepare(`
       SELECT 
@@ -642,298 +685,281 @@ initializeDefaultUser() {
   }
 
   getPayrollSummary(year, month) {
-  try {
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
-    
-    const stmt = this.db.prepare(`
-      SELECT 
-        p.*,
-        e.first_name || ' ' || e.last_name as employee_name,
-        e.position,
-        e.salary as basic_salary,
-        d.name as department_name
-      FROM payroll p
-      INNER JOIN employees e ON p.employee_id = e.id
-      LEFT JOIN departments d ON e.department_id = d.id
-      WHERE p.period_start >= date(?) AND p.period_end <= date(?)
-      ORDER BY p.period_end DESC, e.last_name
-    `);
-    
-    return stmt.all(startDate, endDate);
-  } catch (error) {
-    console.error('Error getting payroll summary:', error);
-    throw error;
+    try {
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          p.*,
+          e.first_name || ' ' || e.last_name as employee_name,
+          e.position,
+          e.salary as basic_salary,
+          d.name as department_name
+        FROM payroll p
+        INNER JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE p.period_start >= date(?) AND p.period_end <= date(?)
+        ORDER BY p.period_end DESC, e.last_name
+      `);
+      
+      return stmt.all(startDate, endDate);
+    } catch (error) {
+      console.error('Error getting payroll summary:', error);
+      throw error;
+    }
   }
-}
 
-markPayrollAsPaid(payrollId, paymentDate = null) {
-  try {
-    const date = paymentDate || new Date().toISOString().split('T')[0];
-    const stmt = this.db.prepare(`
-      UPDATE payroll 
-      SET status = 'Paid', payment_date = ?
-      WHERE id = ?
-    `);
-    
-    const info = stmt.run(date, payrollId);
-    return { changes: info.changes };
-  } catch (error) {
-    console.error('Error marking payroll as paid:', error);
-    throw error;
+  markPayrollAsPaid(payrollId, paymentDate = null) {
+    try {
+      const date = paymentDate || new Date().toISOString().split('T')[0];
+      const stmt = this.db.prepare(`
+        UPDATE payroll 
+        SET status = 'Paid', payment_date = ?
+        WHERE id = ?
+      `);
+      
+      const info = stmt.run(date, payrollId);
+      return { changes: info.changes };
+    } catch (error) {
+      console.error('Error marking payroll as paid:', error);
+      throw error;
+    }
   }
-}
 
-// Get payroll by employee and period
-getPayrollByEmployeeAndPeriod(employeeId, year, month) {
-  try {
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
-    
-    const stmt = this.db.prepare(`
-      SELECT * FROM payroll 
-      WHERE employee_id = ? 
-        AND period_start >= date(?) 
-        AND period_end <= date(?)
-    `);
-    
-    return stmt.get(employeeId, startDate, endDate);
-  } catch (error) {
-    console.error('Error getting payroll by employee and period:', error);
-    throw error;
+  getPayrollByEmployeeAndPeriod(employeeId, year, month) {
+    try {
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-31`;
+      
+      const stmt = this.db.prepare(`
+        SELECT * FROM payroll 
+        WHERE employee_id = ? 
+          AND period_start >= date(?) 
+          AND period_end <= date(?)
+      `);
+      
+      return stmt.get(employeeId, startDate, endDate);
+    } catch (error) {
+      console.error('Error getting payroll by employee and period:', error);
+      throw error;
+    }
   }
-}
 
-// Get attendance for specific cutoff period
-getAttendanceForCutoff(year, month, isFirstHalf) {
-  try {
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-${isFirstHalf ? '01' : '11'}`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-${isFirstHalf ? '10' : '25'}`;
-    
-    const stmt = this.db.prepare(`
-      SELECT 
-        e.id as employee_id,
-        e.first_name || ' ' || e.last_name as employee_name,
-        e.salary as monthly_salary,
-        COUNT(CASE WHEN a.status = 'Present' THEN 1 END) as days_present,
-        COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as days_absent,
-        COUNT(CASE WHEN a.status = 'Late' THEN 1 END) as days_late,
-        COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) as days_leave,
-        COUNT(*) as total_recorded_days
-      FROM employees e
-      LEFT JOIN attendance a ON e.id = a.employee_id 
-        AND date(a.date) BETWEEN date(?) AND date(?)
-      WHERE e.status = 'Active'
-      GROUP BY e.id
-      ORDER BY e.first_name, e.last_name
-    `);
-    
-    return stmt.all(startDate, endDate);
-  } catch (error) {
-    console.error('Error getting attendance for cutoff:', error);
-    throw error;
+  getAttendanceForCutoff(year, month, isFirstHalf) {
+    try {
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-${isFirstHalf ? '01' : '11'}`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${isFirstHalf ? '10' : '25'}`;
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          e.id as employee_id,
+          e.first_name || ' ' || e.last_name as employee_name,
+          e.salary as monthly_salary,
+          COUNT(CASE WHEN a.status = 'Present' THEN 1 END) as days_present,
+          COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) as days_absent,
+          COUNT(CASE WHEN a.status = 'Late' THEN 1 END) as days_late,
+          COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) as days_leave,
+          COUNT(*) as total_recorded_days
+        FROM employees e
+        LEFT JOIN attendance a ON e.id = a.employee_id 
+          AND date(a.date) BETWEEN date(?) AND date(?)
+        WHERE e.status = 'Active'
+        GROUP BY e.id
+        ORDER BY e.first_name, e.last_name
+      `);
+      
+      return stmt.all(startDate, endDate);
+    } catch (error) {
+      console.error('Error getting attendance for cutoff:', error);
+      throw error;
+    }
   }
-}
 
-// Process bi-monthly payroll
-processBiMonthlyPayroll(payrollData) {
-  try {
-    const stmt = this.db.prepare(`
-      INSERT INTO payroll (
-        employee_id, period_start, period_end, basic_salary,
-        allowances, deductions, net_salary, status, payment_date,
-        cutoff_type, working_days, days_present, daily_rate, breakdown
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+  processBiMonthlyPayroll(payrollData) {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO payroll (
+          employee_id, period_start, period_end, basic_salary,
+          allowances, deductions, net_salary, status, payment_date,
+          cutoff_type, working_days, days_present, daily_rate, breakdown
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
 
-    const info = stmt.run(
-      payrollData.employee_id,
-      payrollData.period_start,
-      payrollData.period_end,
-      payrollData.basic_salary,
-      payrollData.allowances || 0,
-      payrollData.deductions || 0,
-      payrollData.net_salary,
-      payrollData.status || 'Pending',
-      payrollData.payment_date || null,
-      payrollData.cutoff_type || 'First Half',
-      payrollData.working_days || 12,
-      payrollData.days_present || 12,
-      payrollData.daily_rate || 0,
-      JSON.stringify(payrollData.breakdown || {})
-    );
+      const info = stmt.run(
+        payrollData.employee_id,
+        payrollData.period_start,
+        payrollData.period_end,
+        payrollData.basic_salary,
+        payrollData.allowances || 0,
+        payrollData.deductions || 0,
+        payrollData.net_salary,
+        payrollData.status || 'Pending',
+        payrollData.payment_date || null,
+        payrollData.cutoff_type || 'First Half',
+        payrollData.working_days || 12,
+        payrollData.days_present || 12,
+        payrollData.daily_rate || 0,
+        JSON.stringify(payrollData.breakdown || {})
+      );
 
-    return { id: info.lastInsertRowid, changes: info.changes };
-  } catch (error) {
-    console.error('Error processing bi-monthly payroll:', error);
-    throw error;
+      return { id: info.lastInsertRowid, changes: info.changes };
+    } catch (error) {
+      console.error('Error processing bi-monthly payroll:', error);
+      throw error;
+    }
   }
-}
 
-// Get payroll by cutoff period
-getPayrollByCutoff(year, month, cutoffType) {
-  try {
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '01' : '11'}`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '10' : '25'}`;
-    
-    const stmt = this.db.prepare(`
-      SELECT 
-        p.*,
-        e.first_name || ' ' || e.last_name as employee_name,
-        e.position,
-        e.salary as monthly_salary,
-        d.name as department_name
-      FROM payroll p
-      INNER JOIN employees e ON p.employee_id = e.id
-      LEFT JOIN departments d ON e.department_id = d.id
-      WHERE p.period_start = date(?) AND p.period_end = date(?)
-      ORDER BY e.last_name
-    `);
-    
-    const result = stmt.all(startDate, endDate);
-    
-    // Add cutoff_type to results for backward compatibility
-    return result.map(row => ({
-      ...row,
-      cutoff_type: row.cutoff_type || cutoffType
-    }));
-    
-  } catch (error) {
-    console.error('Error getting payroll by cutoff:', error);
-    // Fallback to query without cutoff_type column
-    const startDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '01' : '11'}`;
-    const endDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '10' : '25'}`;
-    
-    const stmt = this.db.prepare(`
-      SELECT 
-        p.*,
-        e.first_name || ' ' || e.last_name as employee_name,
-        e.position,
-        e.salary as monthly_salary,
-        d.name as department_name
-      FROM payroll p
-      INNER JOIN employees e ON p.employee_id = e.id
-      LEFT JOIN departments d ON e.department_id = d.id
-      WHERE p.period_start = date(?) AND p.period_end = date(?)
-      ORDER BY e.last_name
-    `);
-    
-    const result = stmt.all(startDate, endDate);
-    
-    // Add cutoff_type for backward compatibility
-    return result.map(row => ({
-      ...row,
-      cutoff_type: cutoffType
-    }));
+  getPayrollByCutoff(year, month, cutoffType) {
+    try {
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '01' : '11'}`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '10' : '25'}`;
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          p.*,
+          e.first_name || ' ' || e.last_name as employee_name,
+          e.position,
+          e.salary as monthly_salary,
+          d.name as department_name
+        FROM payroll p
+        INNER JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE p.period_start = date(?) AND p.period_end = date(?)
+        ORDER BY e.last_name
+      `);
+      
+      const result = stmt.all(startDate, endDate);
+      
+      // Add cutoff_type to results for backward compatibility
+      return result.map(row => ({
+        ...row,
+        cutoff_type: row.cutoff_type || cutoffType
+      }));
+      
+    } catch (error) {
+      console.error('Error getting payroll by cutoff:', error);
+      // Fallback to query without cutoff_type column
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '01' : '11'}`;
+      const endDate = `${year}-${month.toString().padStart(2, '0')}-${cutoffType === 'First Half' ? '10' : '25'}`;
+      
+      const stmt = this.db.prepare(`
+        SELECT 
+          p.*,
+          e.first_name || ' ' || e.last_name as employee_name,
+          e.position,
+          e.salary as monthly_salary,
+          d.name as department_name
+        FROM payroll p
+        INNER JOIN employees e ON p.employee_id = e.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE p.period_start = date(?) AND p.period_end = date(?)
+        ORDER BY e.last_name
+      `);
+      
+      const result = stmt.all(startDate, endDate);
+      
+      // Add cutoff_type for backward compatibility
+      return result.map(row => ({
+        ...row,
+        cutoff_type: cutoffType
+      }));
+    }
   }
-}
 
-migrateDatabase() {
-  try {
-    // Check if new columns exist, if not add them
-    const columns = this.db.prepare(`
-      PRAGMA table_info(payroll)
-    `).all();
-    
-    const columnNames = columns.map(col => col.name);
+  migrateDatabase() {
+    try {
+      // Check if new columns exist, if not add them
+      const columns = this.db.prepare(`
+        PRAGMA table_info(payroll)
+      `).all();
+      
+      const columnNames = columns.map(col => col.name);
 
-    // Add cutoff_type if it doesn't exist
-    if (!columnNames.includes('cutoff_type')) {
-      this.db.exec(`ALTER TABLE payroll ADD COLUMN cutoff_type TEXT DEFAULT 'Full Month'`);
-      console.log('Added cutoff_type column to payroll table');
-    }
-    
-    // Add working_days if it doesn't exist
-    if (!columnNames.includes('working_days')) {
-      this.db.exec(`ALTER TABLE payroll ADD COLUMN working_days INTEGER DEFAULT 24`);
-      console.log('Added working_days column to payroll table');
-    }
-    
-    // Add days_present if it doesn't exist
-    if (!columnNames.includes('days_present')) {
-      this.db.exec(`ALTER TABLE payroll ADD COLUMN days_present INTEGER DEFAULT 24`);
-      console.log('Added days_present column to payroll table');
-    }
-    
-    // Add daily_rate if it doesn't exist
-    if (!columnNames.includes('daily_rate')) {
-      this.db.exec(`ALTER TABLE payroll ADD COLUMN daily_rate REAL DEFAULT 0`);
-      console.log('Added daily_rate column to payroll table');
-    }
-    
-    // Add breakdown if it doesn't exist
-    if (!columnNames.includes('breakdown')) {
-      this.db.exec(`ALTER TABLE payroll ADD COLUMN breakdown TEXT`);
-      console.log('Added breakdown column to payroll table');
-    }
+      // Add cutoff_type if it doesn't exist
+      if (!columnNames.includes('cutoff_type')) {
+        this.db.exec(`ALTER TABLE payroll ADD COLUMN cutoff_type TEXT DEFAULT 'Full Month'`);
+        console.log('Added cutoff_type column to payroll table');
+      }
+      
+      // Add working_days if it doesn't exist
+      if (!columnNames.includes('working_days')) {
+        this.db.exec(`ALTER TABLE payroll ADD COLUMN working_days INTEGER DEFAULT 24`);
+        console.log('Added working_days column to payroll table');
+      }
+      
+      // Add days_present if it doesn't exist
+      if (!columnNames.includes('days_present')) {
+        this.db.exec(`ALTER TABLE payroll ADD COLUMN days_present INTEGER DEFAULT 24`);
+        console.log('Added days_present column to payroll table');
+      }
+      
+      // Add daily_rate if it doesn't exist
+      if (!columnNames.includes('daily_rate')) {
+        this.db.exec(`ALTER TABLE payroll ADD COLUMN daily_rate REAL DEFAULT 0`);
+        console.log('Added daily_rate column to payroll table');
+      }
+      
+      // Add breakdown if it doesn't exist
+      if (!columnNames.includes('breakdown')) {
+        this.db.exec(`ALTER TABLE payroll ADD COLUMN breakdown TEXT`);
+        console.log('Added breakdown column to payroll table');
+      }
 
-    // Check and migrate users table
-    const usersColumns = this.db.prepare(`
-      PRAGMA table_info(users)
-    `).all();
-    
-    const usersColumnNames = usersColumns.map(col => col.name);
-    
-    // Add display_name if it doesn't exist
-    if (!usersColumnNames.includes('display_name')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''`);
-      console.log('Added display_name column to users table');
-    }
-    
-    // Add avatar if it doesn't exist
-    if (!usersColumnNames.includes('avatar')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT`);
-      console.log('Added avatar column to users table');
-    }
-    
-    // Add phone if it doesn't exist
-    if (!usersColumnNames.includes('phone')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`);
-      console.log('Added phone column to users table');
-    }
-    
-    // Add position if it doesn't exist
-    if (!usersColumnNames.includes('position')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN position TEXT`);
-      console.log('Added position column to users table');
-    }
-    
-    // Add department if it doesn't exist
-    if (!usersColumnNames.includes('department')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN department TEXT`);
-      console.log('Added department column to users table');
-    }
-    
-    // Add hire_date if it doesn't exist
-    if (!usersColumnNames.includes('hire_date')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN hire_date DATE`);
-      console.log('Added hire_date column to users table');
-    }
-    
-    // Add bio if it doesn't exist
-    if (!usersColumnNames.includes('bio')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`);
-      console.log('Added bio column to users table');
-    }
-    
-    // Add theme_preference if it doesn't exist
-    if (!usersColumnNames.includes('theme_preference')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN theme_preference TEXT DEFAULT 'light'`);
-      console.log('Added theme_preference column to users table');
-    }
-    
-    // Add language if it doesn't exist
-    if (!usersColumnNames.includes('language')) {
-      this.db.exec(`ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'`);
-      console.log('Added language column to users table');
-    }
+      // Check and migrate users table
+      const usersColumns = this.db.prepare(`
+        PRAGMA table_info(users)
+      `).all();
+      
+      const usersColumnNames = usersColumns.map(col => col.name);
+      
+      // Add display_name if it doesn't exist
+      if (!usersColumnNames.includes('display_name')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''`);
+        console.log('Added display_name column to users table');
+      }
+      
+      // Add avatar if it doesn't exist
+      if (!usersColumnNames.includes('avatar')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN avatar TEXT`);
+        console.log('Added avatar column to users table');
+      }
+      
+      // Add phone if it doesn't exist
+      if (!usersColumnNames.includes('phone')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`);
+        console.log('Added phone column to users table');
+      }
+      
+      // Add position if it doesn't exist
+      if (!usersColumnNames.includes('position')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN position TEXT`);
+        console.log('Added position column to users table');
+      }
+      
+      // Add bio if it doesn't exist
+      if (!usersColumnNames.includes('bio')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN bio TEXT`);
+        console.log('Added bio column to users table');
+      }
+      
+      // Add theme_preference if it doesn't exist
+      if (!usersColumnNames.includes('theme_preference')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN theme_preference TEXT DEFAULT 'light'`);
+        console.log('Added theme_preference column to users table');
+      }
+      
+      // Add language if it doesn't exist
+      if (!usersColumnNames.includes('language')) {
+        this.db.exec(`ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'`);
+        console.log('Added language column to users table');
+      }
 
-
-    console.log('Database migration completed successfully');
-  } catch (error) {
-    console.error('Error during database migration:', error);
+      console.log('Database migration completed successfully');
+    } catch (error) {
+      console.error('Error during database migration:', error);
+    }
   }
-}
 
   // Generic query methods for IPC
   query(sql, params = []) {

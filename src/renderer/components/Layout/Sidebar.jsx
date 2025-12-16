@@ -12,6 +12,7 @@ import {
   Shield
 } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
+import adminProLogo from '../../../../icons/adminpro.png';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
   const location = useLocation();
@@ -43,36 +44,25 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       <aside className={`
         fixed lg:relative lg:flex flex-col
         inset-y-0 left-0 z-50
-        w-64 bg-linear-to-b from-gray-900 to-gray-800 text-white
+        w-55 bg-linear-to-b from-gray-900 to-gray-800 text-white
         transform transition-transform duration-200 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-gray-700">
+          <div className="p-2.5 border-b border-gray-700">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg overflow-hidden border-2 border-gray-600 flex items-center justify-center">
-                {user.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.displayName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <Briefcase size={22} />
-                  </div>
-                )}
+                <img src={adminProLogo} alt="Admin Pro"/>
               </div>
               <div>
-                <h1 className="text-xl font-bold">{user.displayName}</h1>
-                <p className="text-gray-400 text-xs mt-1">Admin Management System</p>
+                <h1 className="text-xl font-bold">Admin<span className="text-blue-400">Pro</span></h1>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-1.5">
+          <nav className="flex-1 p-2">
             <p className="text-xs uppercase text-gray-400 font-semibold mb-4 px-1">Main Menu</p>
             <ul className="space-y-1">
               {navItems.map((item, index) => {
@@ -94,7 +84,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                       <div className={`p-1 rounded-md ${isActive ? 'bg-blue-500' : 'bg-gray-700'}`}>
                         {item.icon}
                       </div>
-                      <span className="font-sm">{item.label}</span>
+                      <span className="text-white font-xs">{item.label}</span>
                     </Link>
                   </li>
                 );
