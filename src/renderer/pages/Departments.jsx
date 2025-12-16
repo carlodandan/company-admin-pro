@@ -154,7 +154,6 @@ const Departments = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-lg text-gray-900">{dept.name}</h3>
-                  <p className="text-sm text-gray-600">Department ID: {dept.id}</p>
                 </div>
                 <div className="flex gap-2">
                   <button 

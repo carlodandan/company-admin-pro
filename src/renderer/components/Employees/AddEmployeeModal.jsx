@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { X, User, Mail, Phone, Briefcase, DollarSign, Calendar, Building, Save, Loader2 } from 'lucide-react';
-import DatabaseService from '../../services/database';
+import React, { useState, useEffect } from 'react';
+import { X, User, Mail, Phone, Briefcase, DollarSign, Calendar, Building, Save, Loader2, AlertCircle } from 'lucide-react';
 
 const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
   const [loading, setLoading] = useState(false);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -13,38 +13,48 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
     email: '',
     phone: '',
     position: '',
-    department_id: 1,
+    department_id: '',
     salary: '',
     hire_date: new Date().toISOString().split('T')[0],
     status: 'Active'
   });
 
-  const [departments, setDepartments] = useState([
-    { id: 1, name: 'Engineering' },
-    { id: 2, name: 'Product' },
-    { id: 3, name: 'Design' },
-    { id: 4, name: 'Human Resources' },
-    { id: 5, name: 'Sales' },
-    { id: 6, name: 'Marketing' },
-    { id: 7, name: 'Finance' }
-  ]);
+  const [departments, setDepartments] = useState([]);
 
   // Load departments from database
-  React.useEffect(() => {
-    loadDepartments();
-  }, []);
+  useEffect(() => {
+    if (isOpen) {
+      loadDepartments();
+    }
+  }, [isOpen]);
 
   const loadDepartments = async () => {
     try {
-      const depts = await DatabaseService.getAllDepartments();
-      if (depts && depts.length > 0) {
-        setDepartments(depts.map(dept => ({
+      setLoadingDepartments(true);
+      const data = await window.electronAPI.getAllDepartments();
+      
+      if (data && data.length > 0) {
+        setDepartments(data.map(dept => ({
           id: dept.id,
           name: dept.name
         })));
+        
+        // Set default department to first one if not set
+        if (!formData.department_id && data.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            department_id: data[0].id
+          }));
+        }
+      } else {
+        setDepartments([]);
       }
     } catch (error) {
       console.error('Error loading departments:', error);
+      setError('Failed to load departments from database');
+      setDepartments([]);
+    } finally {
+      setLoadingDepartments(false);
     }
   };
 
@@ -58,6 +68,13 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate department selection
+    if (!formData.department_id) {
+      setError('Please select a department for the employee');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setSuccess('');
@@ -74,9 +91,9 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
 
       console.log('Submitting employee:', employeeData);
       
-      const result = await DatabaseService.createEmployee(employeeData);
+      const result = await window.electronAPI.createEmployee(employeeData);
       
-      if (result && result.id) {
+      if (result && (result.id || result.changes > 0)) {
         setSuccess('Employee added successfully!');
         
         // Clear form
@@ -86,7 +103,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
           email: '',
           phone: '',
           position: '',
-          department_id: 1,
+          department_id: departments.length > 0 ? departments[0].id : '',
           salary: '',
           hire_date: new Date().toISOString().split('T')[0],
           status: 'Active'
@@ -110,6 +127,15 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
   if (!isOpen) return null;
@@ -160,6 +186,23 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                 </div>
               )}
 
+              {/* Department Warning */}
+              {departments.length === 0 && !loadingDepartments && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={18} className="text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-yellow-800 font-medium">
+                        No departments found!
+                      </p>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        Make sure to create/add a department first before adding employees.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Personal Information */}
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Personal Information</h3>
@@ -176,7 +219,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.first_name}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="John"
                       />
                     </div>
@@ -194,7 +238,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.last_name}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="Doe"
                       />
                     </div>
@@ -212,7 +257,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.email}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="john.doe@company.com"
                       />
                     </div>
@@ -229,7 +275,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
@@ -253,7 +300,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.position}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="Senior Developer"
                       />
                     </div>
@@ -270,15 +318,30 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.department_id}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                        disabled={departments.length === 0 || loading || loadingDepartments}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none disabled:bg-gray-50 disabled:cursor-not-allowed"
                       >
-                        {departments.map(dept => (
-                          <option key={dept.id} value={dept.id}>
-                            {dept.name}
-                          </option>
-                        ))}
+                        {loadingDepartments ? (
+                          <option value="">Loading departments...</option>
+                        ) : departments.length === 0 ? (
+                          <option value="">No departments available</option>
+                        ) : (
+                          <>
+                            <option value="">Select a department</option>
+                            {departments.map(dept => (
+                              <option key={dept.id} value={dept.id}>
+                                {dept.name}
+                              </option>
+                            ))}
+                          </>
+                        )}
                       </select>
                     </div>
+                    {!loadingDepartments && departments.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        {departments.length} department{departments.length !== 1 ? 's' : ''} available
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -295,10 +358,16 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         required
                         min="0"
                         step="1000"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                         placeholder="85000"
                       />
                     </div>
+                    {formData.salary && (
+                      <p className="text-xs text-green-600 mt-2">
+                        ≈ {formatCurrency(parseFloat(formData.salary) / 12)} per month
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -313,7 +382,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.hire_date}
                         onChange={handleChange}
                         required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -328,7 +398,8 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                         value={formData.status}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        disabled={departments.length === 0 || loading}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
                       >
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
@@ -338,6 +409,24 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Department Note */}
+              {departments.length === 0 && !loadingDepartments && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <Building size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-blue-800 font-medium">
+                        Departments Required
+                      </p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Make sure to create/add department first, if it does not exist yet. 
+                        Employees must be assigned to a department.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -352,7 +441,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded }) => {
               </button>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || departments.length === 0 || loadingDepartments}
                 className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
