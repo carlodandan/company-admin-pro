@@ -203,9 +203,10 @@ ipcMain.handle('auth:backup-database', async () => {
 });
 
 // Change password
-ipcMain.handle('auth:change-password', async (event, userId, currentPassword, newPassword) => {
+ipcMain.handle('auth:change-password', async (event, email, currentPassword, newPassword) => {
   try {
-    const result = await authService.changePassword(userId, currentPassword, newPassword);
+    // Use the new changeAdminPassword method
+    const result = await authService.changeAdminPassword(email, currentPassword, newPassword);
     return result;
   } catch (error) {
     console.error('Error changing password:', error);
@@ -229,7 +230,7 @@ ipcMain.handle('auth:create-user', async (event, userData) => {
 ipcMain.handle('auth:get-users', async () => {
   try {
     const users = authService.getAllUsers();
-    return { success: true, data: users };
+    return { success: true, data: [] };
   } catch (error) {
     console.error('Error getting users:', error);
     return { success: false, error: error.message };
@@ -309,38 +310,27 @@ ipcMain.handle('auth:reset-registration', async () => {
 ipcMain.handle('auth:update-company-info', async (event, companyData) => {
   try {
     const stmt = authService.db.prepare(`
-      UPDATE registrations 
+      UPDATE registration_credentials 
       SET 
         company_name = ?,
-        company_address = ?,
-        company_phone = ?,
         company_email = ?,
-        updated_at = ?
+        company_address = ?,
+        company_contact = ?,
+        last_updated = ?
       WHERE is_registered = 1
     `);
     
     stmt.run(
-      companyData.name,
-      companyData.address,
-      companyData.phone,
-      companyData.email,
+      companyData.company_name,
+      companyData.company_email,
+      companyData.company_address,
+      companyData.company_contact,
       new Date().toISOString()
     );
     
     return { success: true, message: 'Company information updated' };
   } catch (error) {
     console.error('Error updating company info:', error);
-    return { success: false, error: error.message };
-  }
-});
-
-// Update user
-ipcMain.handle('auth:update-user', async (event, userId, userData) => {
-  try {
-    const result = await authService.updateUser(userId, userData);
-    return { success: true, data: result };
-  } catch (error) {
-    console.error('Error updating user:', error);
     return { success: false, error: error.message };
   }
 });

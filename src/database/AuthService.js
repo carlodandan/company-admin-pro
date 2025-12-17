@@ -76,72 +76,38 @@ class AuthService {
   }
 
   /**
-   * Initialize database schema with Super Admin Password table
-   */
-  initializeDatabase() {
-    // Registration information table
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS registrations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_name TEXT NOT NULL,
-        company_address TEXT,
-        company_phone TEXT,
-        company_email TEXT NOT NULL,
-        admin_name TEXT NOT NULL,
-        admin_email TEXT NOT NULL UNIQUE,
-        admin_password_hash TEXT NOT NULL,
-        license_key TEXT UNIQUE,
-        is_registered INTEGER DEFAULT 0,
-        registered_at DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+ * Initialize database schema with single registration_credentials table
+ */
+initializeDatabase() {
+  // SINGLE registration_credentials table with ALL information
+  this.db.exec(`
+    CREATE TABLE IF NOT EXISTS registration_credentials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_name TEXT NOT NULL,
+      company_email TEXT NOT NULL,
+      company_address TEXT,
+      company_contact TEXT,
+      admin_name TEXT NOT NULL,
+      admin_email TEXT NOT NULL UNIQUE,
+      admin_password_hash TEXT NOT NULL,
+      super_admin_password_hash TEXT NOT NULL,
+      is_registered INTEGER DEFAULT 0,
+      license_key TEXT UNIQUE,
+      registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_reset_date TIMESTAMP,
+      last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      reset_count INTEGER DEFAULT 0
+    )
+  `);
 
-    // Super Admin Password table - UPDATED SCHEMA
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS registration_credentials (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        company_name TEXT NOT NULL,
-        company_email TEXT NOT NULL,
-        admin_email TEXT NOT NULL UNIQUE,
-        admin_password_hash TEXT NOT NULL,
-        super_admin_password_hash TEXT NOT NULL,
-        registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_reset_date TIMESTAMP,
-        reset_count INTEGER DEFAULT 0,
-        FOREIGN KEY (admin_email) REFERENCES registrations(admin_email) ON DELETE CASCADE
-      )
-    `);
+  // Create indexes for better performance
+  this.db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_credentials_admin_email ON registration_credentials(admin_email);
+    CREATE INDEX IF NOT EXISTS idx_credentials_is_registered ON registration_credentials(is_registered);
+  `);
 
-    // Users table (for future multi-user support)
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        registration_id INTEGER,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        full_name TEXT,
-        role TEXT DEFAULT 'user',
-        is_active INTEGER DEFAULT 1,
-        last_login DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (registration_id) REFERENCES registrations(id) ON DELETE CASCADE
-      )
-    `);
-
-    // Create indexes for better performance
-    this.db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_registrations_admin_email ON registrations(admin_email);
-      CREATE INDEX IF NOT EXISTS idx_registrations_is_registered ON registrations(is_registered);
-      CREATE INDEX IF NOT EXISTS idx_credentials_admin_email ON registration_credentials(admin_email);
-      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-    `);
-
-    console.log('Database tables initialized');
-  }
+  console.log('Database tables initialized');
+}
 
   /**
    * Encrypt a password using AES-256-GCM with instance key
@@ -222,7 +188,7 @@ class AuthService {
     try {
       const stmt = this.db.prepare(`
         SELECT COUNT(*) as count 
-        FROM registrations 
+        FROM registration_credentials 
         WHERE is_registered = 1
       `);
       const result = stmt.get();
@@ -236,124 +202,94 @@ class AuthService {
   /**
    * Store initial registration information WITH Generated Super Admin Password
    */
-  async storeRegistration(registrationData) {
-    try {
-      // Check if already registered
-      if (this.isSystemRegistered()) {
-        throw new Error('System is already registered');
-      }
-
-      // Check if admin email already exists
-      const checkStmt = this.db.prepare(`
-        SELECT COUNT(*) as count 
-        FROM registrations 
-        WHERE admin_email = ?
-      `);
-      const exists = checkStmt.get(registrationData.admin_email);
-      
-      if (exists.count > 0) {
-        throw new Error('Admin email already exists');
-      }
-
-      // Hash the admin password using bcrypt
-      const adminPasswordHash = await this.hashPassword(registrationData.admin_password);
-
-      // Generate a simple license key
-      const licenseKey = this.generateLicenseKey();
-
-      // Generate Super Admin Password
-      const superAdminPassword = registrationData.super_admin_password;
-      
-      console.log('Generated Super Admin Password:', superAdminPassword);
-
-      // Hash Super Admin Password with bcrypt
-      const superAdminPasswordHash = await this.hashPassword(superAdminPassword);
-
-      // Start transaction
-      this.db.exec('BEGIN TRANSACTION');
-      
-      try {
-        // Store in registrations table
-        const stmt = this.db.prepare(`
-          INSERT INTO registrations (
-            company_name,
-            company_address,
-            company_phone,
-            company_email,
-            admin_name,
-            admin_email,
-            admin_password_hash,
-            license_key,
-            is_registered,
-            registered_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const now = new Date().toISOString();
-        const result = stmt.run(
-          registrationData.company_name,
-          registrationData.company_address || null,
-          registrationData.company_phone || null,
-          registrationData.company_email,
-          registrationData.admin_name,
-          registrationData.admin_email,
-          adminPasswordHash,
-          licenseKey,
-          1, // Mark as registered
-          now
-        );
-
-        // Store in registration_credentials table
-        const credStmt = this.db.prepare(`
-          INSERT INTO registration_credentials (
-            company_name,
-            company_email,
-            admin_email,
-            admin_password_hash,
-            super_admin_password_hash
-          ) VALUES (?, ?, ?, ?, ?)
-        `);
-
-        credStmt.run(
-          registrationData.company_name,
-          registrationData.company_email,
-          registrationData.admin_email,
-          adminPasswordHash,
-          superAdminPasswordHash
-        );
-
-        // Create the admin user account
-        await this.createAdminUser(
-          result.lastInsertRowid,
-          registrationData.admin_email,
-          registrationData.admin_password,
-          registrationData.admin_name
-        );
-
-        // Commit transaction
-        this.db.exec('COMMIT');
-
-        console.log(`Registration stored successfully. ID: ${result.lastInsertRowid}`);
-        
-        return {
-          success: true,
-          registrationId: result.lastInsertRowid,
-          licenseKey: licenseKey,
-          adminEmail: registrationData.admin_email,
-          superAdminPassword: superAdminPassword
-        };
-
-      } catch (error) {
-        // Rollback on error
-        this.db.exec('ROLLBACK');
-        throw error;
-      }
-
-    } catch (error) {
-      console.error('Error storing registration:', error);
-      throw error;
+async storeRegistration(registrationData) {
+  try {
+    // Check if already registered
+    if (this.isSystemRegistered()) {
+      throw new Error('System is already registered');
     }
+
+    // Check if admin email already exists
+    const checkStmt = this.db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM registration_credentials 
+      WHERE admin_email = ?
+    `);
+    const exists = checkStmt.get(registrationData.admin_email);
+    
+    if (exists.count > 0) {
+      throw new Error('Admin email already exists');
+    }
+
+    // Hash both passwords using bcrypt
+    const adminPasswordHash = await this.hashPassword(registrationData.admin_password);
+    const superAdminPasswordHash = await this.hashPassword(registrationData.super_admin_password);
+
+    // Generate a simple license key
+    const licenseKey = this.generateLicenseKey();
+
+    // Store everything in registration_credentials table
+    const stmt = this.db.prepare(`
+      INSERT INTO registration_credentials (
+        -- Company Information
+        company_name,
+        company_email,
+        company_address,
+        company_contact,
+        
+        -- Admin Information
+        admin_name,
+        admin_email,
+        admin_password_hash,
+        
+        -- Super Admin Password
+        super_admin_password_hash,
+        
+        -- Registration Status
+        is_registered,
+        license_key,
+        registration_date
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const now = new Date().toISOString();
+    const result = stmt.run(
+      // Company Information
+      registrationData.company_name,
+      registrationData.company_email,
+      registrationData.company_address || null,
+      registrationData.company_contact || null,
+      
+      // Admin Information
+      registrationData.admin_name,
+      registrationData.admin_email,
+      adminPasswordHash,
+      
+      // Super Admin Password
+      superAdminPasswordHash,
+      
+      // Registration Status
+      1, // Mark as registered
+      licenseKey,
+      // Registration Date
+      now
+    );
+
+    console.log(`Registration stored successfully. ID: ${result.lastInsertRowid}`);
+    
+    return {
+      success: true,
+      registrationId: result.lastInsertRowid,
+      licenseKey: licenseKey,
+      adminEmail: registrationData.admin_email,
+      superAdminPassword: registrationData.super_admin_password
+    };
+
+  } catch (error) {
+    console.error('Error storing registration:', error);
+    throw error;
   }
+}
 
   /**
    * Verify Super Admin Password for password reset
@@ -397,98 +333,44 @@ class AuthService {
    * Reset admin password using Super Admin Password
    */
   async resetAdminPassword(email, superAdminPassword, newPassword) {
-    try {
-      // First verify Super Admin Password
-      const verification = await this.verifySuperAdminPassword(email, superAdminPassword);
-      if (!verification.success) {
-        return verification;
-      }
-
-      // Hash the new password
-      const newPasswordHash = await this.hashPassword(newPassword);
-
-      // Update registrations table
-      const updateRegStmt = this.db.prepare(`
-        UPDATE registrations 
-        SET admin_password_hash = ?, updated_at = ?
-        WHERE admin_email = ?
-      `);
-
-      updateRegStmt.run(
-        newPasswordHash,
-        new Date().toISOString(),
-        email
-      );
-
-      // Update registration_credentials table (admin_password_hash reference)
-      const updateCredStmt = this.db.prepare(`
-        UPDATE registration_credentials 
-        SET admin_password_hash = ?, last_reset_date = ?, reset_count = reset_count + 1
-        WHERE admin_email = ?
-      `);
-
-      updateCredStmt.run(
-        newPasswordHash,
-        new Date().toISOString(),
-        email
-      );
-
-      // Update users table if the user exists there
-      const updateUserStmt = this.db.prepare(`
-        UPDATE users 
-        SET password_hash = ?
-        WHERE email = ?
-      `);
-
-      updateUserStmt.run(newPasswordHash, email);
-
-      return {
-        success: true,
-        message: 'Password reset successfully'
-      };
-
-    } catch (error) {
-      console.error('Error resetting password:', error);
-      return { success: false, error: 'Password reset failed' };
+  try {
+    // First verify Super Admin Password
+    const verification = await this.verifySuperAdminPassword(email, superAdminPassword);
+    if (!verification.success) {
+      return verification;
     }
+
+    // Hash the new password
+    const newPasswordHash = await this.hashPassword(newPassword);
+
+    // Update ONLY registration_credentials table
+    const updateStmt = this.db.prepare(`
+      UPDATE registration_credentials 
+      SET 
+        admin_password_hash = ?, 
+        last_reset_date = ?, 
+        last_updated = ?,
+        reset_count = reset_count + 1
+      WHERE admin_email = ?
+    `);
+
+    updateStmt.run(
+      newPasswordHash,
+      new Date().toISOString(),
+      new Date().toISOString(),
+      email
+    );
+
+    return {
+      success: true,
+      message: 'Password reset successfully'
+    };
+
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    return { success: false, error: 'Password reset failed' };
   }
-
-  /**
-   * Create admin user account after registration
-   */
-  async createAdminUser(registrationId, email, password, fullName) {
-    try {
-      const passwordHash = await this.hashPassword(password);
-      
-      const stmt = this.db.prepare(`
-        INSERT INTO users (
-          registration_id,
-          username,
-          email,
-          password_hash,
-          full_name,
-          role
-        ) VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
-      const username = email.split('@')[0];
-      
-      stmt.run(
-        registrationId,
-        username,
-        email,
-        passwordHash,
-        fullName,
-        'admin'
-      );
-
-      console.log('Admin user created successfully');
-    } catch (error) {
-      console.error('Error creating admin user:', error);
-      throw error;
-    }
-  }
-
+}
   /**
    * Generate a simple license key
    */
@@ -502,115 +384,93 @@ class AuthService {
    * Get registration information
    */
   getRegistrationInfo() {
-    try {
-      const stmt = this.db.prepare(`
-        SELECT 
-          id,
-          company_name,
-          company_address,
-          company_phone,
-          company_email,
-          admin_name,
-          admin_email,
-          license_key,
-          is_registered,
-          registered_at,
-          created_at
-        FROM registrations 
-        WHERE is_registered = 1
-        ORDER BY registered_at DESC
-        LIMIT 1
-      `);
-      
-      return stmt.get() || null;
-    } catch (error) {
-      console.error('Error getting registration info:', error);
-      return null;
-    }
+  try {
+    const stmt = this.db.prepare(`
+      SELECT 
+        id,
+        -- Company Information
+        company_name,
+        company_email,
+        company_address,
+        company_contact,
+        
+        -- Admin Information
+        admin_name,
+        admin_email,
+        
+        -- Registration Status
+        license_key,
+        is_registered,
+        registration_date,
+        last_updated
+      FROM registration_credentials 
+      WHERE is_registered = 1
+      ORDER BY registration_date DESC
+      LIMIT 1
+    `);
+    
+    return stmt.get() || null;
+  } catch (error) {
+    console.error('Error getting registration info:', error);
+    return null;
   }
+}
 
   /**
    * Verify admin login credentials
    */
   async verifyAdminLogin(email, password) {
-    try {
-      // First check in registrations table
-      const regStmt = this.db.prepare(`
-        SELECT 
-          admin_password_hash,
-          admin_name,
-          company_name
-        FROM registrations 
-        WHERE admin_email = ? AND is_registered = 1
-      `);
-      
-      const registration = regStmt.get(email);
-      
-      if (registration) {
-        // Verify against registration password
-        const isValid = await this.verifyPassword(
-          password,
-          registration.admin_password_hash
-        );
-        
-        if (isValid) {
-          return {
-            success: true,
-            user: {
-              email: email,
-              name: registration.admin_name,
-              role: 'admin',
-              company: registration.company_name
-            },
-            source: 'registration'
-          };
-        }
-      }
-
-      // If not found in registrations, check in users table
-      const userStmt = this.db.prepare(`
-        SELECT 
-          password_hash,
-          full_name,
-          role
-        FROM users 
-        WHERE email = ? AND is_active = 1
-      `);
-      
-      const user = userStmt.get(email);
-      
-      if (user) {
-        const isValid = await this.verifyPassword(
-          password,
-          user.password_hash
-        );
-        
-        if (isValid) {
-          return {
-            success: true,
-            user: {
-              email: email,
-              name: user.full_name,
-              role: user.role
-            },
-            source: 'users'
-          };
-        }
-      }
-
+  try {
+    // Check ONLY in registration_credentials table
+    const stmt = this.db.prepare(`
+      SELECT 
+        admin_password_hash,
+        admin_name,
+        company_name
+      FROM registration_credentials 
+      WHERE admin_email = ? AND is_registered = 1
+    `);
+    
+    const registration = stmt.get(email);
+    
+    if (!registration) {
       return {
         success: false,
         error: 'Invalid email or password'
       };
+    }
 
-    } catch (error) {
-      console.error('Error verifying login:', error);
+    // Verify password
+    const isValid = await this.verifyPassword(
+      password,
+      registration.admin_password_hash
+    );
+    
+    if (!isValid) {
       return {
         success: false,
-        error: 'Login verification failed'
+        error: 'Invalid email or password'
       };
     }
+
+    return {
+      success: true,
+      user: {
+        email: email,
+        name: registration.admin_name,
+        role: 'admin',
+        company: registration.company_name
+      }
+    };
+
+  } catch (error) {
+    console.error('Error verifying login:', error);
+    return {
+      success: false,
+      error: 'Login verification failed'
+    };
   }
+}
 
   /**
    * Close database connection
@@ -647,126 +507,66 @@ class AuthService {
    * WARNING: This will delete all registration data!
    */
   resetRegistration() {
-    try {
-      this.db.exec('DELETE FROM registrations');
-      this.db.exec('DELETE FROM registration_credentials');
-      this.db.exec('DELETE FROM users');
-      this.db.exec('VACUUM'); // Clean up database file
-      
-      console.log('Registration data reset successfully');
-      
-      return {
-        success: true,
-        message: 'Registration reset complete'
-      };
-    } catch (error) {
-      console.error('Error resetting registration:', error);
-      throw error;
-    }
+  try {
+    // Only delete from registration_credentials
+    this.db.exec('DELETE FROM registration_credentials');
+    this.db.exec('VACUUM'); // Clean up database file
+    
+    console.log('Registration data reset successfully');
+    
+    return {
+      success: true,
+      message: 'Registration reset complete'
+    };
+  } catch (error) {
+    console.error('Error resetting registration:', error);
+    throw error;
   }
+}
 
-  /**
-   * Get all users
-   */
-  getAllUsers() {
-    try {
-      const stmt = this.db.prepare(`
-        SELECT id, username, email, full_name, role, is_active, last_login, created_at
-        FROM users
-        ORDER BY created_at DESC
-      `);
-      return stmt.all();
-    } catch (error) {
-      console.error('Error getting all users:', error);
-      return [];
+async changeAdminPassword(email, currentPassword, newPassword) {
+  try {
+    // Get the current admin password hash
+    const stmt = this.db.prepare(`
+      SELECT admin_password_hash 
+      FROM registration_credentials 
+      WHERE admin_email = ? AND is_registered = 1
+    `);
+    
+    const admin = stmt.get(email);
+    
+    if (!admin) {
+      return { success: false, error: 'Admin not found' };
     }
-  }
-
-  /**
-   * Update user
-   */
-  async updateUser(userId, userData) {
-    try {
-      let passwordUpdate = '';
-      let params = [];
-      
-      if (userData.password) {
-        // Hash the new password
-        const passwordHash = await this.hashPassword(userData.password);
-        passwordUpdate = 'password_hash = ?, ';
-        params.push(passwordHash);
-      }
-      
-      const stmt = this.db.prepare(`
-        UPDATE users 
-        SET ${passwordUpdate}
-            full_name = ?,
-            role = ?,
-            is_active = ?
-        WHERE id = ?
-      `);
-      
-      params.push(
-        userData.full_name,
-        userData.role,
-        userData.is_active ? 1 : 0,
-        userId
-      );
-      
-      const result = stmt.run(...params);
-      
-      return {
-        success: true,
-        rowsAffected: result.changes
-      };
-    } catch (error) {
-      console.error('Error updating user:', error);
-      throw error;
+    
+    // Verify current password
+    const isValid = await this.verifyPassword(currentPassword, admin.admin_password_hash);
+    
+    if (!isValid) {
+      return { success: false, error: 'Current password is incorrect' };
     }
+    
+    // Hash the new password
+    const newPasswordHash = await this.hashPassword(newPassword);
+    
+    // Update password
+    const updateStmt = this.db.prepare(`
+      UPDATE registration_credentials 
+      SET admin_password_hash = ?, last_updated = ?
+      WHERE admin_email = ?
+    `);
+    
+    updateStmt.run(newPasswordHash, new Date().toISOString(), email);
+    
+    return {
+      success: true,
+      message: 'Password changed successfully'
+    };
+  } catch (error) {
+    console.error('Error changing admin password:', error);
+    return { success: false, error: 'Failed to change password' };
   }
-
-  /**
-   * Change password
-   */
-  async changePassword(userId, currentPassword, newPassword) {
-    try {
-      // First get the current password hash
-      const stmt = this.db.prepare(`
-        SELECT password_hash FROM users WHERE id = ?
-      `);
-      
-      const user = stmt.get(userId);
-      
-      if (!user) {
-        return { success: false, error: 'User not found' };
-      }
-      
-      // Verify current password
-      const isValid = await this.verifyPassword(currentPassword, user.password_hash);
-      
-      if (!isValid) {
-        return { success: false, error: 'Current password is incorrect' };
-      }
-      
-      // Hash the new password
-      const newPasswordHash = await this.hashPassword(newPassword);
-      
-      // Update password
-      const updateStmt = this.db.prepare(`
-        UPDATE users SET password_hash = ? WHERE id = ?
-      `);
-      
-      updateStmt.run(newPasswordHash, userId);
-      
-      return {
-        success: true,
-        message: 'Password changed successfully'
-      };
-    } catch (error) {
-      console.error('Error changing password:', error);
-      return { success: false, error: 'Failed to change password' };
-    }
-  }
+}
 }
 
 export default AuthService;
