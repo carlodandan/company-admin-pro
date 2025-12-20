@@ -19,7 +19,7 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         iconUrl: 'https://raw.githubusercontent.com/carlodandan/admin-pro/refs/heads/main/icons/adminpro.ico',
-        setupIcon: 'icons/adminpro.ico'
+        setupIcon: 'icons/adminpro'
       },
     }
   ],
