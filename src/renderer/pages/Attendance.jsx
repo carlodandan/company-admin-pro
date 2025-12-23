@@ -15,16 +15,26 @@ const Attendance = () => {
 
   // Load initial data
   useEffect(() => {
-    loadAttendanceData();
+    loadAttendanceData(selectedDate);
     loadEmployees();
     loadDepartments();
   }, [selectedDate]);
 
-  const loadAttendanceData = async () => {
+  const loadAttendanceData = async (date = null) => {
     try {
       setLoading(true);
-      // Get today's attendance
-      const data = await window.electronAPI.getTodayAttendance();
+      // Use the provided date or selectedDate
+      const targetDate = date || selectedDate;
+      
+      // You need a new API method to get attendance for a specific date
+      // Let's create one by querying the database
+      const attendanceQuery = `
+        SELECT * FROM attendance 
+        WHERE date = ? 
+        ORDER BY employee_id
+      `;
+      
+      const data = await window.electronAPI.query(attendanceQuery, [targetDate]);
       setAttendanceData(data || []);
     } catch (error) {
       console.error('Error loading attendance:', error);
@@ -60,7 +70,7 @@ const Attendance = () => {
       
       const attendanceRecord = {
         employee_id: employeeId,
-        date: selectedDate,
+        date: selectedDate, // Use the selected date, not today
         status: status,
         check_in: status === 'Present' ? '09:00:00' : null,
         check_out: status === 'Present' ? '17:00:00' : null,
@@ -69,13 +79,13 @@ const Attendance = () => {
 
       await window.electronAPI.recordAttendance(attendanceRecord);
       
-      // Refresh attendance data
-      await loadAttendanceData();
+      // Refresh attendance data for the selected date
+      await loadAttendanceData(selectedDate);
       
       // Show success message
       const employee = employees.find(emp => emp.id === employeeId);
       if (employee) {
-        alert(`Successfully marked ${employee.first_name} ${employee.last_name} as ${status}`);
+        alert(`Successfully marked ${employee.first_name} ${employee.last_name} as ${status} for ${selectedDate}`);
       }
     } catch (error) {
       console.error('Error recording attendance:', error);
@@ -86,7 +96,7 @@ const Attendance = () => {
   };
 
   const handleMarkAllPresent = async () => {
-    if (!window.confirm('Mark all employees as present for today?')) {
+    if (!window.confirm(`Mark all employees as present for ${selectedDate}?`)) {
       return;
     }
 
@@ -94,7 +104,7 @@ const Attendance = () => {
       setIsRecording(true);
       
       for (const employee of filteredEmployees) {
-        // Check if already recorded today
+        // Check if already recorded for the selected date
         const existingRecord = attendanceData.find(record => 
           record.employee_id === employee.id && 
           record.date === selectedDate
@@ -103,7 +113,7 @@ const Attendance = () => {
         if (!existingRecord) {
           const attendanceRecord = {
             employee_id: employee.id,
-            date: selectedDate,
+            date: selectedDate, // Use selected date
             status: 'Present',
             check_in: '09:00:00',
             check_out: '17:00:00',
@@ -114,8 +124,8 @@ const Attendance = () => {
         }
       }
       
-      await loadAttendanceData();
-      alert('All employees marked as present!');
+      await loadAttendanceData(selectedDate);
+      alert(`All employees marked as present for ${selectedDate}!`);
     } catch (error) {
       console.error('Error bulk marking attendance:', error);
       alert(`Error: ${error.message}`);
